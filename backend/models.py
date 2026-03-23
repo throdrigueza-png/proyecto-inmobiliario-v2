@@ -8,10 +8,10 @@ from database import Base
 
 # Emails that are always granted the admin role
 ADMIN_EMAILS = {
-    "thomasfernandoroan@hotmail.com",
+    "thomasfernandoroan@gmail.com",
+    "throdrigueza@unal.edu.co",
     "serviasi@hotmail.com",
     "thomas_frodrigueza@soy.sena.edu.co",
-    "throdrigueza@unal.edu.co",
 }
 
 
