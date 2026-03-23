@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Building2, Mail, Lock, LogIn, Chrome, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -16,6 +16,30 @@ export default function Login() {
   const [form, setForm] = useState({ nombre: '', email: '', password: '' })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const googleInitialized = useRef(false)
+
+  useEffect(() => {
+    if (googleInitialized.current || !window.google?.accounts?.id) return
+    const clientId =
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      '208393082876-0a1niao1vghku5kqlo6ei3b9b855no82.apps.googleusercontent.com'
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      use_fedcm_for_prompt: true,
+      callback: async ({ credential }) => {
+        try {
+          setLoading(true)
+          await loginGoogle(credential)
+          navigate('/')
+        } catch {
+          setError('No se pudo iniciar sesión con Google.')
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
+    googleInitialized.current = true
+  }, [loginGoogle, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,27 +63,10 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setError(null)
-    const clientId =
-      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-      '208393082876-0a1niao1vghku5kqlo6ei3b9b855no82.apps.googleusercontent.com'
     if (!window.google?.accounts?.id) {
       setError('El servicio de Google no está disponible. Recarga la página e inténtalo de nuevo.')
       return
     }
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: async ({ credential }) => {
-        try {
-          setLoading(true)
-          await loginGoogle(credential)
-          navigate('/')
-        } catch {
-          setError('No se pudo iniciar sesión con Google.')
-        } finally {
-          setLoading(false)
-        }
-      },
-    })
     window.google.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
         setError('El inicio de sesión con Google fue cancelado o bloqueado. Intenta de nuevo.')
