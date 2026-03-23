@@ -39,11 +39,9 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setError(null)
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-    if (!clientId) {
-      setError('El inicio de sesión con Google no está configurado aún.')
-      return
-    }
+    const clientId =
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      '208393082876-0a1niao1vghku5kqlo6ei3b9b855no82.apps.googleusercontent.com'
     if (!window.google?.accounts?.id) {
       setError('El servicio de Google no está disponible. Recarga la página e inténtalo de nuevo.')
       return
@@ -62,7 +60,11 @@ export default function Login() {
         }
       },
     })
-    window.google.accounts.id.prompt()
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        setError('El inicio de sesión con Google fue cancelado o bloqueado. Intenta de nuevo.')
+      }
+    })
   }
 
   return (

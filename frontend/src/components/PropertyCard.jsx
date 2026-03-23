@@ -26,7 +26,7 @@ const TIPO_LABELS = {
   arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
 }
 
-const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573001234567'
+const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573105597895'
 
 export default function PropertyCard({ property, index = 0 }) {
   const {

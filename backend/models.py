@@ -8,7 +8,7 @@ from database import Base
 
 # Emails that are always granted the admin role
 ADMIN_EMAILS = {
-    "thomasfernandoroan@gmail.com",
+    "thomasfernandoroan@hotmail.com",
     "serviasi@hotmail.com",
     "thomas_frodrigueza@soy.sena.edu.co",
     "throdrigueza@unal.edu.co",

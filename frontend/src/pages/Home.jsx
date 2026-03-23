@@ -11,10 +11,10 @@ const MotionDiv = motion.div
 const MotionH1 = motion.h1
 const MotionP = motion.p
 
-const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573001234567'
+const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573105597895'
 const MONICA_WHATSAPP = `https://wa.me/${MONICA_PHONE}?text=${encodeURIComponent('Hola Mónica, estoy interesado/a en tus propiedades. ¿Me puedes dar más información?')}`
-const FACEBOOK_URL = import.meta.env.VITE_FACEBOOK_URL || 'https://www.facebook.com/'
-const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/'
+const FACEBOOK_URL = import.meta.env.VITE_FACEBOOK_URL || 'https://www.facebook.com/monica.anzolaalvarez'
+const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/thomas_rod.anz/'
 
 const TRANSACTION_TYPES = [
   { value: '', label: 'Todo' },
