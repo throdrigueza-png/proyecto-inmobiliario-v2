@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Plus, Pencil, Trash2, CheckCircle, X,
-  Building2, Tag, Maximize2, MapPin, ImageIcon,
+  Building2, Tag, Maximize2, MapPin, ImageIcon, Images,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { getProperties, createProperty, updateProperty, deleteProperty, getUsers, uploadImage } from '../api'
+import { getProperties, createProperty, updateProperty, deleteProperty, getUsers, uploadImages } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
 const EMPTY_FORM = {
@@ -16,7 +16,6 @@ const EMPTY_FORM = {
   direccion: '',
   latitud: '',
   longitud: '',
-  url_imagen: '',
   tipo_transaccion: 'venta',
   estado: 'disponible',
   owner_id: '',
@@ -56,14 +55,15 @@ export default function AdminDashboard() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [geocodingFailed, setGeocodingFailed] = useState(false)
 
-  // Image upload state — imagePreview is always either a blob: URL (from
-  // URL.createObjectURL) or a sanitized https: URL, never user-controlled text.
-  const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
+  // Multi-image upload state
+  // existingImageUrls: already-uploaded URLs (from Cloudinary) kept from a previous save
+  // newImageFiles / newImagePreviews: newly selected files (not yet uploaded)
+  const [existingImageUrls, setExistingImageUrls] = useState([])
+  const [newImageFiles, setNewImageFiles] = useState([])
+  const [newImagePreviews, setNewImagePreviews] = useState([])
   const [uploading, setUploading] = useState(false)
 
-  // Derive a URL-safe src for the preview <img>: only allow blob: and https?:.
-  const safePreviewSrc = imagePreview && /^(blob:|https?:)/.test(imagePreview) ? imagePreview : null
+  const totalImages = existingImageUrls.length + newImageFiles.length
 
   // Redirect non-admins
   useEffect(() => {
@@ -130,31 +130,64 @@ export default function AdminDashboard() {
     setShowForm(false)
     setEditId(null)
     setForm(EMPTY_FORM)
-    setImageFile(null)
-    setImagePreview(null)
+    newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
+    setExistingImageUrls([])
+    setNewImageFiles([])
+    setNewImagePreviews([])
     setGeocodingFailed(false)
+  }
+
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files || [])
+    if (!selected.length) return
+    const available = 10 - totalImages
+    if (available <= 0) {
+      setError('Ya tienes 10 imágenes. Elimina alguna antes de agregar más.')
+      e.target.value = ''
+      return
+    }
+    const accepted = selected.slice(0, available)
+    if (accepted.length < selected.length) {
+      setError(`Solo se permiten 10 imágenes en total. Se agregaron ${accepted.length} de ${selected.length} seleccionadas.`)
+    }
+    const previews = accepted.map((f) => URL.createObjectURL(f))
+    setNewImageFiles((prev) => [...prev, ...accepted])
+    setNewImagePreviews((prev) => [...prev, ...previews])
+    e.target.value = '' // reset input so same files can be re-selected after removal
+  }
+
+  const removeExistingImage = (idx) => {
+    setExistingImageUrls((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const removeNewImage = (idx) => {
+    URL.revokeObjectURL(newImagePreviews[idx])
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== idx))
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
-    let imageUrl = form.url_imagen
+    let uploadedUrls = []
 
-    // Upload new image file if one was selected
-    if (imageFile) {
+    // Upload any newly selected image files to Cloudinary
+    if (newImageFiles.length > 0) {
       setUploading(true)
       try {
-        const res = await uploadImage(imageFile)
-        imageUrl = res.data.url
+        const res = await uploadImages(newImageFiles)
+        uploadedUrls = res.data.urls
       } catch (err) {
         const detail = err.response?.data?.detail || 'Verifica la configuración de Cloudinary en el servidor.'
-        setError(`Error subiendo la imagen: ${detail}`)
+        setError(`Error subiendo imágenes: ${detail}`)
         setUploading(false)
         return
       }
       setUploading(false)
     }
+
+    const finalImages = [...existingImageUrls, ...uploadedUrls]
 
     const payload = {
       ...form,
@@ -163,7 +196,7 @@ export default function AdminDashboard() {
       latitud: form.latitud ? parseFloat(form.latitud) : null,
       longitud: form.longitud ? parseFloat(form.longitud) : null,
       owner_id: parseInt(form.owner_id),
-      url_imagen: imageUrl || null,
+      images: finalImages,
     }
     try {
       if (editId) {
@@ -189,13 +222,15 @@ export default function AdminDashboard() {
       direccion: p.direccion ?? '',
       latitud: p.latitud ?? '',
       longitud: p.longitud ?? '',
-      url_imagen: p.url_imagen ?? '',
       tipo_transaccion: p.tipo_transaccion ?? 'venta',
       estado: p.estado,
       owner_id: p.owner_id,
     })
-    setImageFile(null)
-    setImagePreview(p.url_imagen && /^https?:/.test(p.url_imagen) ? p.url_imagen : null)
+    // Validate existing image URLs before trusting them
+    const safeUrls = (p.images || []).filter((u) => /^https?:/.test(u))
+    setExistingImageUrls(safeUrls)
+    setNewImageFiles([])
+    setNewImagePreviews([])
     setGeocodingFailed(false)
     setEditId(p.id)
     setShowForm(true)
@@ -233,7 +268,15 @@ export default function AdminDashboard() {
             </div>
           </div>
           <button
-            onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_FORM); setImageFile(null); setImagePreview(null); setGeocodingFailed(false) }}
+            onClick={() => {
+              setShowForm(true)
+              setEditId(null)
+              setForm(EMPTY_FORM)
+              setExistingImageUrls([])
+              setNewImageFiles([])
+              setNewImagePreviews([])
+              setGeocodingFailed(false)
+            }}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Plus size={18} /> Nueva propiedad
@@ -376,39 +419,93 @@ export default function AdminDashboard() {
                   )}
                 </Field>
 
-                {/* Image upload */}
-                <Field label="Foto de la propiedad" icon={<ImageIcon size={14} />}>
-                  <div className="flex flex-col gap-2">
-                    {safePreviewSrc && (
-                      <div className="relative h-32 rounded-xl overflow-hidden border border-slate-600">
-                        <img
-                          src={safePreviewSrc}
-                          alt="Vista previa"
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => { setImageFile(null); setImagePreview(null); setForm((f) => ({ ...f, url_imagen: '' })) }}
-                          className="absolute top-2 right-2 bg-black/60 hover:bg-red-500/80 text-white rounded-full p-1 transition-colors"
-                        >
-                          <X size={12} />
-                        </button>
+                {/* Multi-image upload (up to 10) */}
+                <Field label={`Fotos del predio (${totalImages}/10)`} icon={<Images size={14} />}>
+                  <div className="flex flex-col gap-3">
+                    {/* Image thumbnails grid */}
+                    {(existingImageUrls.length > 0 || newImagePreviews.length > 0) && (
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {/* Existing URLs */}
+                        {existingImageUrls.map((url, idx) => (
+                          <div key={`existing-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-slate-600 group/thumb">
+                            <img
+                              src={/^https?:/.test(url) ? url : ''}
+                              alt={`Imagen ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            {idx === 0 && (
+                              <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#0078d4]/90 text-white py-0.5">
+                                Portada
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeExistingImage(idx)}
+                              className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
+                              aria-label="Eliminar imagen"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ))}
+                        {/* New file previews */}
+                        {newImagePreviews.map((preview, idx) => {
+                          const overallIdx = existingImageUrls.length + idx
+                          return (
+                            <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-emerald-500/50 group/thumb">
+                              <img
+                                src={/^(blob:|https?:)/.test(preview) ? preview : ''}
+                                alt={`Nueva imagen ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {overallIdx === 0 && (
+                                <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#0078d4]/90 text-white py-0.5">
+                                  Portada
+                                </span>
+                              )}
+                              <span className="absolute top-1 left-1 bg-emerald-500/80 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px]">
+                                ↑
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeNewImage(idx)}
+                                className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
+                                aria-label="Eliminar imagen"
+                              >
+                                <X size={11} />
+                              </button>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          setImageFile(file)
-                          setImagePreview(URL.createObjectURL(file))
-                        }
-                      }}
-                      className="text-slate-300 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-600/20 file:text-emerald-400 file:font-medium file:cursor-pointer hover:file:bg-emerald-600/30 file:transition-colors"
-                    />
-                    {!imagePreview && (
-                      <p className="text-slate-500 text-xs">Selecciona una foto desde tu computador o celular</p>
+
+                    {/* File picker */}
+                    {totalImages < 10 && (
+                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#0078d4]/30 hover:border-[#0078d4]/60 rounded-xl p-4 cursor-pointer transition-colors group/drop">
+                        <ImageIcon size={20} className="text-[#0078d4]/60 group-hover/drop:text-[#0078d4] transition-colors" />
+                        <span className="text-slate-400 text-xs text-center">
+                          {totalImages === 0
+                            ? 'Selecciona hasta 10 fotos'
+                            : `Agregar más fotos (${10 - totalImages} disponibles)`}
+                        </span>
+                        <span className="text-[#56a4ea] text-xs font-medium">
+                          La primera foto será la portada de la card
+                        </span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    )}
+
+                    {totalImages >= 10 && (
+                      <p className="text-amber-400 text-xs text-center py-2">
+                        Límite de 10 imágenes alcanzado. Elimina alguna para agregar más.
+                      </p>
                     )}
                   </div>
                 </Field>
@@ -434,7 +531,7 @@ export default function AdminDashboard() {
                   disabled={uploading}
                   className="mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
                 >
-                  {uploading ? 'Subiendo imagen…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
+                  {uploading ? 'Subiendo imágenes…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
                 </button>
               </form>
             </div>

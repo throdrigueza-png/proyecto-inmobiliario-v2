@@ -284,34 +284,37 @@ def delete_property(
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
-@app.post("/upload")
-async def upload_image(
-    file: UploadFile = File(...),
-    _admin: models.User = Depends(require_admin),
-):
-    """Upload an image to Cloudinary and return its secure URL (admin only)."""
-    if file.content_type not in _ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail="Tipo de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG, WebP, GIF).",
-        )
-
+def _configure_cloudinary():
+    """Configure the Cloudinary SDK from environment variables, raising 503 if not set."""
     cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
     api_key = os.getenv("CLOUDINARY_API_KEY")
     api_secret = os.getenv("CLOUDINARY_API_SECRET")
-
     if not all([cloud_name, api_key, api_secret]):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="El servicio de almacenamiento de imágenes no está configurado en el servidor.",
         )
-
     cloudinary.config(
         cloud_name=cloud_name,
         api_key=api_key,
         api_secret=api_secret,
         secure=True,
     )
+
+
+@app.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    _admin: models.User = Depends(require_admin),
+):
+    """Upload a single image to Cloudinary and return its secure URL (admin only)."""
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG, WebP, GIF).",
+        )
+
+    _configure_cloudinary()
 
     contents = await file.read()
     try:
@@ -327,6 +330,109 @@ async def upload_image(
             detail="No se pudo subir la imagen al servicio de almacenamiento. Inténtalo de nuevo.",
         )
     return {"url": result["secure_url"]}
+
+
+@app.post("/upload/multiple")
+async def upload_multiple_images(
+    files: List[UploadFile] = File(...),
+    _admin: models.User = Depends(require_admin),
+):
+    """Upload up to 10 images to Cloudinary and return their secure URLs (admin only)."""
+    if len(files) > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Máximo 10 imágenes por propiedad.",
+        )
+    for f in files:
+        if f.content_type not in _ALLOWED_IMAGE_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Tipo de archivo no permitido: {f.filename}. Solo JPEG, PNG, WebP y GIF.",
+            )
+
+    _configure_cloudinary()
+
+    urls: List[str] = []
+    uploaded_public_ids: List[str] = []
+    for f in files:
+        contents = await f.read()
+        try:
+            result = cloudinary.uploader.upload(
+                contents,
+                folder="inmobiliaria",
+                resource_type="image",
+            )
+            urls.append(result["secure_url"])
+            uploaded_public_ids.append(result["public_id"])
+        except Exception as exc:
+            logger.error("Cloudinary upload failed for %s: %s", f.filename, exc)
+            # Roll back already-uploaded images to avoid orphaned resources
+            for pid in uploaded_public_ids:
+                try:
+                    cloudinary.uploader.destroy(pid)
+                except Exception as cleanup_exc:
+                    logger.warning("Cloudinary cleanup failed for %s: %s", pid, cleanup_exc)
+            raise HTTPException(
+                status_code=502,
+                detail=f"No se pudo subir '{f.filename}'. Inténtalo de nuevo.",
+            )
+    return {"urls": urls}
+
+
+# ── Favorites ─────────────────────────────────────────────────────────────────
+
+@app.post("/favorites/{property_id}", response_model=schemas.FavoriteStatus)
+def toggle_favorite(
+    property_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user),
+):
+    """Toggle a property favorite for the current authenticated user."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Debes iniciar sesión para agregar favoritos.",
+        )
+    prop = db.query(models.Property).filter(models.Property.id == property_id).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Propiedad no encontrada.")
+
+    existing = (
+        db.query(models.Favorite)
+        .filter(
+            models.Favorite.user_id == current_user.id,
+            models.Favorite.property_id == property_id,
+        )
+        .first()
+    )
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return {"favorited": False}
+    else:
+        db.add(models.Favorite(user_id=current_user.id, property_id=property_id))
+        db.commit()
+        return {"favorited": True}
+
+
+@app.get("/favorites", response_model=schemas.FavoriteIds)
+def get_user_favorites(
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user),
+):
+    """Return the list of property IDs favorited by the current user."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Debes iniciar sesión.",
+        )
+    fav_ids = [
+        row.property_id
+        for row in db.query(models.Favorite.property_id)
+        .filter(models.Favorite.user_id == current_user.id)
+        .all()
+    ]
+    return {"favorite_ids": fav_ids}
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
