@@ -9,4 +9,5 @@ passlib[bcrypt]
 python-multipart
 alembic
 google-auth
+requests>=2.31.0
 python-dotenv
