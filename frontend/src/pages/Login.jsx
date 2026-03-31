@@ -19,6 +19,18 @@ export default function Login() {
   const googleInitialized = useRef(false)
 
   useEffect(() => {
+    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      console.warn(
+        '[Auth] VITE_GOOGLE_CLIENT_ID no está definida. ' +
+          'Asegúrate de configurarla como GitHub Secret para que el build de producción la incluya.'
+      )
+    }
+    if (!import.meta.env.VITE_API_URL) {
+      console.warn(
+        '[Auth] VITE_API_URL no está definida. ' +
+          'El frontend usará la URL de fallback hardcodeada; configura el secret en GitHub Actions.'
+      )
+    }
     if (googleInitialized.current || !window.google?.accounts?.id) return
     const clientId =
       import.meta.env.VITE_GOOGLE_CLIENT_ID ||
