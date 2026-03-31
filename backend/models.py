@@ -1,6 +1,6 @@
 import enum
 from sqlalchemy import (
-    Column, Integer, String, Float, Enum, ForeignKey, Text
+    Column, Integer, String, Float, Enum, ForeignKey, Text, JSON
 )
 from sqlalchemy.orm import relationship
 from database import Base
@@ -32,6 +32,14 @@ class PropertyStatus(str, enum.Enum):
     reservado = "reservado"
 
 
+class Favorite(Base):
+    """Many-to-many join table: users ↔ properties (favorites)."""
+    __tablename__ = "favorites"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"), primary_key=True)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -57,7 +65,8 @@ class Property(Base):
     direccion = Column(String(300), nullable=True)
     latitud = Column(Float, nullable=True)
     longitud = Column(Float, nullable=True)
-    url_imagen = Column(String(500), nullable=True)
+    # List of up to 10 Cloudinary image URLs; images[0] is the cover/default image.
+    images = Column(JSON, nullable=True, default=list)
     tipo_transaccion = Column(
         Enum(TipoTransaccion),
         default=TipoTransaccion.venta,

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, SlidersHorizontal, MessageCircle, Instagram, Facebook, TrendingUp, Shield, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import PropertyCard from '../components/PropertyCard'
 import ParticlesBackground from '../components/ParticlesBackground'
-import { getProperties } from '../api'
+import { getProperties, getFavorites } from '../api'
+import { useAuth } from '../contexts/AuthContext'
 
 // Named motion components (makes ESLint happy with member-expression usage)
 const MotionDiv = motion.div
@@ -52,7 +54,10 @@ function SkeletonCard() {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
+  const { user, isAdmin } = useAuth()
   const [properties, setProperties] = useState([])
+  const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -65,6 +70,14 @@ export default function Home() {
       .catch(() => setError('No se pudieron cargar las propiedades.'))
       .finally(() => setLoading(false))
   }, [])
+
+  // Load the current user's favorites (non-admin only)
+  useEffect(() => {
+    if (!user || isAdmin) return
+    getFavorites()
+      .then((res) => setFavoriteIds(new Set(res.data.favorite_ids)))
+      .catch((err) => console.error('[Favorites] Could not load favorites:', err)) // non-critical
+  }, [user, isAdmin])
 
   const filtered = properties.filter((p) => {
     const matchSearch =
@@ -305,7 +318,13 @@ export default function Home() {
             <AnimatePresence>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map((p, i) => (
-                  <PropertyCard key={p.id} property={p} index={i} />
+                  <PropertyCard
+                    key={p.id}
+                    property={p}
+                    index={i}
+                    initialFavorited={favoriteIds.has(p.id)}
+                    onLoginRequired={() => navigate('/login')}
+                  />
                 ))}
               </div>
             </AnimatePresence>

@@ -1,18 +1,12 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import { MessageCircle, MapPin, Tag, Maximize2, Home } from 'lucide-react'
+import { useState } from 'react'
+import { Heart, Tag, Maximize2, MapPin, Images } from 'lucide-react'
 import { motion } from 'framer-motion'
-import L from 'leaflet'
+import { useAuth } from '../contexts/AuthContext'
+import { toggleFavorite } from '../api'
+import PropertyModal from './PropertyModal'
 
 // Named motion component (makes ESLint happy with member-expression usage)
 const MotionArticle = motion.article
-
-// Fix default Leaflet marker icons in bundlers
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
 
 const STATUS_LABELS = {
   disponible: { label: 'Disponible', bg: 'bg-emerald-500', ring: 'ring-emerald-500/30' },
@@ -26,137 +20,148 @@ const TIPO_LABELS = {
   arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
 }
 
-const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573105597895'
+export default function PropertyCard({ property, index = 0, initialFavorited = false, onLoginRequired }) {
+  const { user, isAdmin } = useAuth()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [favorited, setFavorited] = useState(initialFavorited)
+  const [favLoading, setFavLoading] = useState(false)
 
-export default function PropertyCard({ property, index = 0 }) {
-  const {
-    titulo,
-    descripcion,
-    precio,
-    tamaño_m2,
-    direccion,
-    url_imagen,
-    latitud,
-    longitud,
-    estado,
-    tipo_transaccion,
-    owner,
-  } = property
+  const coverImage = property.images?.[0] ?? null
+  const imageCount = property.images?.length ?? 0
 
-  const status = STATUS_LABELS[estado] ?? STATUS_LABELS.disponible
-  const tipo   = TIPO_LABELS[tipo_transaccion] ?? TIPO_LABELS.venta
+  const status = STATUS_LABELS[property.estado] ?? STATUS_LABELS.disponible
+  const tipo   = TIPO_LABELS[property.tipo_transaccion] ?? TIPO_LABELS.venta
 
-  const whatsappMsg = encodeURIComponent(
-    `Hola Mónica, estoy interesado/a en la propiedad "${titulo}"${direccion ? ` ubicada en ${direccion}` : ''}. ¿Podría darme más información?`
-  )
-  const phone = owner?.telefono?.replace(/\D/g, '') || MONICA_PHONE
-  const whatsappUrl = `https://wa.me/${phone}?text=${whatsappMsg}`
+  const handleFavorite = async (e) => {
+    e.stopPropagation()
+    if (!user) {
+      onLoginRequired?.()
+      return
+    }
+    if (isAdmin) return
+    setFavLoading(true)
+    const next = !favorited
+    setFavorited(next) // optimistic update
+    try {
+      await toggleFavorite(property.id)
+    } catch (err) {
+      console.error('[Favorites] Toggle failed:', err)
+      setFavorited(!next) // revert on error
+    } finally {
+      setFavLoading(false)
+    }
+  }
 
   return (
-    <MotionArticle
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.07, ease: 'easeOut' }}
-      className="card-glow group relative rounded-2xl overflow-hidden flex flex-col"
-      style={{ background: 'linear-gradient(145deg, #0d2137 0%, #091526 100%)', border: '1px solid rgba(0,120,212,0.15)' }}
-    >
-      {/* Image */}
-      <div className="relative h-52 overflow-hidden">
-        <img
-          src={url_imagen || 'https://placehold.co/600x400/0d2137/2b8be0?text=Sin+imagen'}
-          alt={titulo}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-        />
-        {/* Dark overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#091526]/80 via-transparent to-transparent" />
+    <>
+      <MotionArticle
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.07, ease: 'easeOut' }}
+        className="card-glow group relative rounded-2xl overflow-hidden cursor-pointer select-none"
+        style={{
+          background: 'linear-gradient(145deg, #0d2137 0%, #091526 100%)',
+          border: '1px solid rgba(0,120,212,0.15)',
+        }}
+        onClick={() => setModalOpen(true)}
+      >
+        {/* ── Cover image ─────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden" style={{ height: '240px' }}>
+          <img
+            src={coverImage || 'https://placehold.co/600x400/0d2137/2b8be0?text=Sin+imagen'}
+            alt={property.titulo}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            draggable={false}
+          />
 
-        {/* Tipo badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full text-white bg-gradient-to-r ${tipo.gradient} shadow-lg`}>
-            {tipo.label}
+          {/* Strong gradient overlay at bottom */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#091526] via-[#091526]/30 to-transparent pointer-events-none" />
+
+          {/* Top-left: tipo badge */}
+          <div className="absolute top-3 left-3 z-10">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full text-white bg-gradient-to-r ${tipo.gradient} shadow-lg`}>
+              {tipo.label}
+            </span>
+          </div>
+
+          {/* Top-right: heart button (non-admin users) */}
+          {!isAdmin && (
+            <button
+              onClick={handleFavorite}
+              disabled={favLoading}
+              aria-label={favorited ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              className={`absolute top-3 right-3 z-10 p-2 rounded-full transition-all duration-200 ${
+                favorited
+                  ? 'bg-red-500 text-white scale-110 shadow-lg shadow-red-500/40'
+                  : 'bg-black/50 text-white hover:bg-red-500/80 hover:scale-105'
+              }`}
+            >
+              <Heart size={18} fill={favorited ? 'currentColor' : 'none'} />
+            </button>
+          )}
+
+          {/* Bottom-left: status badge */}
+          <span
+            className={`absolute bottom-14 left-3 z-10 text-xs font-semibold px-2.5 py-1 rounded-full text-white ring-2 ${status.bg} ${status.ring}`}
+          >
+            {status.label}
+          </span>
+
+          {/* Bottom-right: image count (when > 1) */}
+          {imageCount > 1 && (
+            <div className="absolute bottom-14 right-3 z-10 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+              <Images size={11} />
+              <span>{imageCount}</span>
+            </div>
+          )}
+
+          {/* Bottom overlay: title + price */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+            <h3 className="text-white font-bold text-sm leading-tight line-clamp-1 mb-1.5 group-hover:text-[#56a4ea] transition-colors duration-200">
+              {property.titulo}
+            </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Tag size={13} className="text-[#56a4ea]" />
+                <span className="text-white font-bold text-sm">
+                  ${Number(property.precio).toLocaleString('es-CO')}
+                </span>
+              </div>
+              {property.tamaño_m2 && (
+                <div className="flex items-center gap-1">
+                  <Maximize2 size={11} className="text-[#56a4ea]" />
+                  <span className="text-slate-300 text-xs">{property.tamaño_m2} m²</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Card footer ──────────────────────────────────────────────────── */}
+        <div className="px-4 py-3 flex items-center justify-between gap-2">
+          {property.direccion ? (
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs flex-1 min-w-0">
+              <MapPin size={12} className="flex-shrink-0 text-[#0078d4]" />
+              <span className="truncate">{property.direccion}</span>
+            </div>
+          ) : (
+            <span className="text-slate-600 text-xs">Sin dirección</span>
+          )}
+          <span className="text-[#56a4ea] text-xs font-semibold flex-shrink-0 group-hover:translate-x-0.5 transition-transform">
+            Ver más →
           </span>
         </div>
 
-        {/* Status badge */}
-        <span className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full text-white ring-2 ${status.bg} ${status.ring}`}>
-          {status.label}
-        </span>
+        {/* Bottom azure accent line */}
+        <div className="h-px bg-gradient-to-r from-transparent via-[#0078d4]/40 to-transparent" />
+      </MotionArticle>
 
-        {/* Price overlay on image bottom */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 bg-[#020c1b]/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[#0078d4]/30">
-            <Tag size={14} className="text-[#56a4ea]" />
-            <span className="text-white font-bold text-sm">${Number(precio).toLocaleString('es-CO')}</span>
-          </div>
-          {tamaño_m2 && (
-            <div className="flex items-center gap-1 bg-[#020c1b]/80 backdrop-blur-sm px-2.5 py-1.5 rounded-full border border-[#0078d4]/30">
-              <Maximize2 size={12} className="text-[#56a4ea]" />
-              <span className="text-slate-200 text-xs font-medium">{tamaño_m2} m²</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-5 flex flex-col gap-3 flex-1">
-        <h3 className="text-base font-bold text-white leading-tight line-clamp-2 group-hover:text-[#56a4ea] transition-colors duration-200">
-          {titulo}
-        </h3>
-
-        {/* Address */}
-        {direccion && (
-          <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-            <MapPin size={13} className="flex-shrink-0 text-[#0078d4]" />
-            <span className="line-clamp-1">{direccion}</span>
-          </div>
-        )}
-
-        {descripcion && (
-          <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed">{descripcion}</p>
-        )}
-
-        {/* Map */}
-        {latitud && longitud && (
-          <div className="rounded-xl overflow-hidden h-40 mt-1 border border-[#0078d4]/20">
-            <MapContainer
-              center={[latitud, longitud]}
-              zoom={15}
-              scrollWheelZoom={false}
-              className="h-full w-full"
-              attributionControl={false}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[latitud, longitud]}>
-                <Popup>{titulo}</Popup>
-              </Marker>
-            </MapContainer>
-          </div>
-        )}
-
-        {!latitud && !longitud && !direccion && (
-          <div className="flex items-center gap-1 text-slate-500 text-xs">
-            <Home size={11} />
-            <span>Ubicación no disponible</span>
-          </div>
-        )}
-
-        {/* WhatsApp CTA */}
-        <div className="mt-auto pt-2">
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold py-3 rounded-xl transition-all duration-200 w-full hover:shadow-lg hover:shadow-green-500/30 active:scale-95"
-          >
-            <MessageCircle size={15} />
-            Consultar por WhatsApp
-          </a>
-        </div>
-      </div>
-
-      {/* Bottom azure accent line */}
-      <div className="h-px bg-gradient-to-r from-transparent via-[#0078d4]/40 to-transparent" />
-    </MotionArticle>
+      {/* Property detail modal */}
+      {modalOpen && (
+        <PropertyModal property={property} onClose={() => setModalOpen(false)} />
+      )}
+    </>
   )
 }
+
 

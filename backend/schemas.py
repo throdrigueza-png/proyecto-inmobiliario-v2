@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 from models import UserRole, PropertyStatus, TipoTransaccion
 
@@ -51,7 +51,8 @@ class PropertyBase(BaseModel):
     direccion: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
-    url_imagen: Optional[str] = None
+    # List of up to 10 Cloudinary image URLs; images[0] is the cover/default image.
+    images: Optional[List[str]] = []
     tipo_transaccion: TipoTransaccion = TipoTransaccion.venta
     estado: PropertyStatus = PropertyStatus.disponible
 
@@ -68,7 +69,7 @@ class PropertyUpdate(BaseModel):
     direccion: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
-    url_imagen: Optional[str] = None
+    images: Optional[List[str]] = None
     tipo_transaccion: Optional[TipoTransaccion] = None
     estado: Optional[PropertyStatus] = None
 
@@ -80,3 +81,13 @@ class PropertyOut(PropertyBase):
 
     class Config:
         from_attributes = True
+
+
+# ── Favorites schemas ─────────────────────────────────────────────────────────
+
+class FavoriteStatus(BaseModel):
+    favorited: bool
+
+
+class FavoriteIds(BaseModel):
+    favorite_ids: List[int]
