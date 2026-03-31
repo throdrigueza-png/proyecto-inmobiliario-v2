@@ -132,12 +132,19 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
 @app.post("/auth/google", response_model=schemas.TokenResponse)
 def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
     """Verify a Google ID token and return a JWT for this platform."""
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google login no está configurado en este servidor.",
         )
+
+    # Log a masked version of the configured client ID to help diagnose
+    # mismatches between the frontend and backend GOOGLE_CLIENT_ID values.
+    # Google Client IDs are public identifiers (embedded in frontend JS), not secrets.
+    masked_id = GOOGLE_CLIENT_ID[:8] + "..." if len(GOOGLE_CLIENT_ID) > 8 else GOOGLE_CLIENT_ID
+    print(f"[Google Auth] Using GOOGLE_CLIENT_ID starting with: {masked_id}", flush=True)
+
     try:
         from google.oauth2 import id_token as google_id_token
         from google.auth.transport import requests as google_requests
@@ -149,7 +156,11 @@ def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
         )
         email = id_info["email"].lower()
         nombre = id_info.get("name", email.split("@")[0])
-    except Exception:
+    except Exception as exc:
+        # Log exception type and message for debugging in Azure Log Stream.
+        # Google's verification errors contain only technical details (e.g. audience mismatch,
+        # expiry), never user-provided token content.
+        print(f"[Google Auth] Token verification FAILED: {type(exc).__name__}: {exc}", flush=True)
         raise HTTPException(status_code=401, detail="Token de Google inválido")
 
     # Get or create the user
