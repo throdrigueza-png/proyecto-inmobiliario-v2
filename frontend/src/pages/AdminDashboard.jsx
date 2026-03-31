@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Plus, Pencil, Trash2, CheckCircle, X,
   Building2, Tag, Maximize2, MapPin, ImageIcon,
@@ -54,6 +54,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [geocodingFailed, setGeocodingFailed] = useState(false)
 
   // Image upload state — imagePreview is always either a blob: URL (from
   // URL.createObjectURL) or a sanitized https: URL, never user-controlled text.
@@ -63,10 +64,6 @@ export default function AdminDashboard() {
 
   // Derive a URL-safe src for the preview <img>: only allow blob: and https?:.
   const safePreviewSrc = imagePreview && /^(blob:|https?:)/.test(imagePreview) ? imagePreview : null
-
-  // Google Places Autocomplete refs
-  const addressInputRef = useRef(null)
-  const autocompleteRef = useRef(null)
 
   // Redirect non-admins
   useEffect(() => {
@@ -91,64 +88,38 @@ export default function AdminDashboard() {
       })
   }, [refreshKey, user, isAdmin])
 
-  // Load Google Maps Places Autocomplete when the form opens
+  // Auto-geocode the address using Nominatim (OpenStreetMap) — no API key needed.
+  // Debounced 600 ms so we don't hammer the service on every keystroke.
+  // Minimum 5 characters: shorter strings never return useful geocoding results.
   useEffect(() => {
-    if (!showForm) {
-      // Clean up the autocomplete instance when form closes
-      if (autocompleteRef.current) {
-        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current)
-        autocompleteRef.current = null
-      }
-      return
-    }
+    if (!form.direccion || form.direccion.trim().length < 5) return
 
-    const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!MAPS_KEY) return // Falls back to plain text input
-
-    let ac = null
-
-    const initAutocomplete = () => {
-      if (!addressInputRef.current || autocompleteRef.current) return
-      ac = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-        types: ['geocode'],
-      })
-      ac.addListener('place_changed', () => {
-        const place = ac.getPlace()
-        if (place.geometry?.location) {
+    const timer = setTimeout(async () => {
+      try {
+        // Nominatim usage policy requires identifying the application.
+        // Browsers cannot override User-Agent, so we send Referer instead.
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(form.direccion)}`,
+          { headers: { 'Accept-Language': 'es', Referer: window.location.origin } },
+        )
+        const data = await res.json()
+        if (data.length > 0) {
+          setGeocodingFailed(false)
           setForm((prev) => ({
             ...prev,
-            direccion: place.formatted_address || prev.direccion,
-            latitud: place.geometry.location.lat(),
-            longitud: place.geometry.location.lng(),
+            latitud: parseFloat(data[0].lat),
+            longitud: parseFloat(data[0].lon),
           }))
+        } else {
+          setGeocodingFailed(true)
         }
-      })
-      autocompleteRef.current = ac
-    }
-
-    if (window.google?.maps?.places) {
-      initAutocomplete()
-    } else {
-      const existingScript = document.getElementById('gmaps-places-script')
-      if (existingScript) {
-        existingScript.addEventListener('load', initAutocomplete)
-      } else {
-        const script = document.createElement('script')
-        script.id = 'gmaps-places-script'
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`
-        script.async = true
-        script.defer = true
-        script.addEventListener('load', initAutocomplete)
-        document.head.appendChild(script)
+      } catch {
+        setGeocodingFailed(true)
       }
-    }
+    }, 600)
 
-    return () => {
-      if (ac) {
-        window.google?.maps?.event?.clearInstanceListeners(ac)
-      }
-    }
-  }, [showForm])
+    return () => clearTimeout(timer)
+  }, [form.direccion])
 
   const notify = (msg) => {
     setSuccess(msg)
@@ -161,6 +132,7 @@ export default function AdminDashboard() {
     setForm(EMPTY_FORM)
     setImageFile(null)
     setImagePreview(null)
+    setGeocodingFailed(false)
   }
 
   const handleSubmit = async (e) => {
@@ -224,6 +196,7 @@ export default function AdminDashboard() {
     })
     setImageFile(null)
     setImagePreview(p.url_imagen && /^https?:/.test(p.url_imagen) ? p.url_imagen : null)
+    setGeocodingFailed(false)
     setEditId(p.id)
     setShowForm(true)
   }
@@ -260,7 +233,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <button
-            onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_FORM); setImageFile(null); setImagePreview(null) }}
+            onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_FORM); setImageFile(null); setImagePreview(null); setGeocodingFailed(false) }}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Plus size={18} /> Nueva propiedad
@@ -376,10 +349,9 @@ export default function AdminDashboard() {
                   </Field>
                 </div>
 
-                {/* Address with Google Places Autocomplete */}
+                {/* Address — Nominatim (OpenStreetMap) auto-geocodes on input */}
                 <Field label="Dirección" icon={<MapPin size={14} />}>
                   <input
-                    ref={addressInputRef}
                     type="text"
                     value={form.direccion}
                     onChange={(e) => setForm({ ...form, direccion: e.target.value })}
@@ -393,12 +365,14 @@ export default function AdminDashboard() {
                       <MapPin size={11} />
                       Coordenadas detectadas ({Number(form.latitud).toFixed(5)}, {Number(form.longitud).toFixed(5)})
                     </span>
+                  ) : geocodingFailed ? (
+                    <span className="text-amber-400 text-xs mt-1">
+                      No se encontraron coordenadas para esta dirección. Intenta con una dirección más completa.
+                    </span>
                   ) : (
-                    import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                      <span className="text-slate-500 text-xs mt-1">
-                        Escribe la dirección y selecciona una sugerencia para detectar las coordenadas automáticamente
-                      </span>
-                    )
+                    <span className="text-slate-500 text-xs mt-1">
+                      Escribe la dirección completa para detectar las coordenadas automáticamente
+                    </span>
                   )}
                 </Field>
 
