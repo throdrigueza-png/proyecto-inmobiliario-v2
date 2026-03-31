@@ -33,6 +33,7 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_MONICA_PHONE: ${{ secrets.VITE_MONICA_PHONE }}
           VITE_FACEBOOK_URL: ${{ secrets.VITE_FACEBOOK_URL }}
           VITE_INSTAGRAM_URL: ${{ secrets.VITE_INSTAGRAM_URL }}

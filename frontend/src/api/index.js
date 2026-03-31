@@ -25,6 +25,15 @@ export const createProperty = (data) => api.post('/properties', data)
 export const updateProperty = (id, data) => api.put(`/properties/${id}`, data)
 export const deleteProperty = (id) => api.delete(`/properties/${id}`)
 
+// ── Image upload ──────────────────────────────────────────────────────────────
+export const uploadImage = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const getUsers = () => api.get('/users')
 export const createUser = (data) => api.post('/users', data)

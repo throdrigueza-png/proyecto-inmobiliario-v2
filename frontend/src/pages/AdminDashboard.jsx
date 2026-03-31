@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   LayoutDashboard, Plus, Pencil, Trash2, CheckCircle, X,
-  Building2, Tag, Maximize2, MapPin,
+  Building2, Tag, Maximize2, MapPin, ImageIcon,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { getProperties, createProperty, updateProperty, deleteProperty, getUsers } from '../api'
+import { getProperties, createProperty, updateProperty, deleteProperty, getUsers, uploadImage } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
 const EMPTY_FORM = {
@@ -55,6 +55,19 @@ export default function AdminDashboard() {
   const [success, setSuccess] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Image upload state — imagePreview is always either a blob: URL (from
+  // URL.createObjectURL) or a sanitized https: URL, never user-controlled text.
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [uploading, setUploading] = useState(false)
+
+  // Derive a URL-safe src for the preview <img>: only allow blob: and https?:.
+  const safePreviewSrc = imagePreview && /^(blob:|https?:)/.test(imagePreview) ? imagePreview : null
+
+  // Google Places Autocomplete refs
+  const addressInputRef = useRef(null)
+  const autocompleteRef = useRef(null)
+
   // Redirect non-admins
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
@@ -78,13 +91,99 @@ export default function AdminDashboard() {
       })
   }, [refreshKey, user, isAdmin])
 
+  // Load Google Maps Places Autocomplete when the form opens
+  useEffect(() => {
+    if (!showForm) {
+      // Clean up the autocomplete instance when form closes
+      if (autocompleteRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current)
+        autocompleteRef.current = null
+      }
+      return
+    }
+
+    const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (!MAPS_KEY) return // Falls back to plain text input
+
+    let ac = null
+
+    const initAutocomplete = () => {
+      if (!addressInputRef.current || autocompleteRef.current) return
+      ac = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['geocode'],
+      })
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace()
+        if (place.geometry?.location) {
+          setForm((prev) => ({
+            ...prev,
+            direccion: place.formatted_address || prev.direccion,
+            latitud: place.geometry.location.lat(),
+            longitud: place.geometry.location.lng(),
+          }))
+        }
+      })
+      autocompleteRef.current = ac
+    }
+
+    if (window.google?.maps?.places) {
+      initAutocomplete()
+    } else {
+      const existingScript = document.getElementById('gmaps-places-script')
+      if (existingScript) {
+        existingScript.addEventListener('load', initAutocomplete)
+      } else {
+        const script = document.createElement('script')
+        script.id = 'gmaps-places-script'
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`
+        script.async = true
+        script.defer = true
+        script.addEventListener('load', initAutocomplete)
+        document.head.appendChild(script)
+      }
+    }
+
+    return () => {
+      if (ac) {
+        window.google?.maps?.event?.clearInstanceListeners(ac)
+      }
+    }
+  }, [showForm])
+
   const notify = (msg) => {
     setSuccess(msg)
     setTimeout(() => setSuccess(null), 3000)
   }
 
+  const closeForm = () => {
+    setShowForm(false)
+    setEditId(null)
+    setForm(EMPTY_FORM)
+    setImageFile(null)
+    setImagePreview(null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
+
+    let imageUrl = form.url_imagen
+
+    // Upload new image file if one was selected
+    if (imageFile) {
+      setUploading(true)
+      try {
+        const res = await uploadImage(imageFile)
+        imageUrl = res.data.url
+      } catch (err) {
+        const detail = err.response?.data?.detail || 'Verifica la configuración de Cloudinary en el servidor.'
+        setError(`Error subiendo la imagen: ${detail}`)
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
     const payload = {
       ...form,
       precio: parseFloat(form.precio),
@@ -92,6 +191,7 @@ export default function AdminDashboard() {
       latitud: form.latitud ? parseFloat(form.latitud) : null,
       longitud: form.longitud ? parseFloat(form.longitud) : null,
       owner_id: parseInt(form.owner_id),
+      url_imagen: imageUrl || null,
     }
     try {
       if (editId) {
@@ -101,9 +201,7 @@ export default function AdminDashboard() {
         await createProperty(payload)
         notify('Propiedad creada.')
       }
-      setShowForm(false)
-      setEditId(null)
-      setForm(EMPTY_FORM)
+      closeForm()
       refresh()
     } catch {
       setError('Error guardando la propiedad.')
@@ -124,6 +222,8 @@ export default function AdminDashboard() {
       estado: p.estado,
       owner_id: p.owner_id,
     })
+    setImageFile(null)
+    setImagePreview(p.url_imagen && /^https?:/.test(p.url_imagen) ? p.url_imagen : null)
     setEditId(p.id)
     setShowForm(true)
   }
@@ -160,7 +260,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <button
-            onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_FORM) }}
+            onClick={() => { setShowForm(true); setEditId(null); setForm(EMPTY_FORM); setImageFile(null); setImagePreview(null) }}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Plus size={18} /> Nueva propiedad
@@ -196,7 +296,7 @@ export default function AdminDashboard() {
             <div className="bg-slate-800 rounded-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
               <button
                 className="absolute top-4 right-4 text-slate-400 hover:text-white"
-                onClick={() => setShowForm(false)}
+                onClick={closeForm}
               >
                 <X size={22} />
               </button>
@@ -276,47 +376,67 @@ export default function AdminDashboard() {
                   </Field>
                 </div>
 
+                {/* Address with Google Places Autocomplete */}
                 <Field label="Dirección" icon={<MapPin size={14} />}>
                   <input
+                    ref={addressInputRef}
                     type="text"
                     value={form.direccion}
                     onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                     className="input-dark"
-                    placeholder="Calle 123 # 45-67, Bogotá"
+                    placeholder="Calle 123 # 45-67, Bogotá, Colombia"
+                    autoComplete="off"
                   />
+                  {/* Coordinates status indicator */}
+                  {form.latitud && form.longitud ? (
+                    <span className="flex items-center gap-1 text-emerald-400 text-xs mt-1">
+                      <MapPin size={11} />
+                      Coordenadas detectadas ({Number(form.latitud).toFixed(5)}, {Number(form.longitud).toFixed(5)})
+                    </span>
+                  ) : (
+                    import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                      <span className="text-slate-500 text-xs mt-1">
+                        Escribe la dirección y selecciona una sugerencia para detectar las coordenadas automáticamente
+                      </span>
+                    )
+                  )}
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Latitud">
+                {/* Image upload */}
+                <Field label="Foto de la propiedad" icon={<ImageIcon size={14} />}>
+                  <div className="flex flex-col gap-2">
+                    {safePreviewSrc && (
+                      <div className="relative h-32 rounded-xl overflow-hidden border border-slate-600">
+                        <img
+                          src={safePreviewSrc}
+                          alt="Vista previa"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setImageFile(null); setImagePreview(null); setForm((f) => ({ ...f, url_imagen: '' })) }}
+                          className="absolute top-2 right-2 bg-black/60 hover:bg-red-500/80 text-white rounded-full p-1 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
                     <input
-                      type="number"
-                      step="any"
-                      value={form.latitud}
-                      onChange={(e) => setForm({ ...form, latitud: e.target.value })}
-                      className="input-dark"
-                      placeholder="4.7110"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setImageFile(file)
+                          setImagePreview(URL.createObjectURL(file))
+                        }
+                      }}
+                      className="text-slate-300 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-600/20 file:text-emerald-400 file:font-medium file:cursor-pointer hover:file:bg-emerald-600/30 file:transition-colors"
                     />
-                  </Field>
-                  <Field label="Longitud">
-                    <input
-                      type="number"
-                      step="any"
-                      value={form.longitud}
-                      onChange={(e) => setForm({ ...form, longitud: e.target.value })}
-                      className="input-dark"
-                      placeholder="-74.0721"
-                    />
-                  </Field>
-                </div>
-
-                <Field label="URL de imagen">
-                  <input
-                    type="url"
-                    value={form.url_imagen}
-                    onChange={(e) => setForm({ ...form, url_imagen: e.target.value })}
-                    className="input-dark"
-                    placeholder="https://…"
-                  />
+                    {!imagePreview && (
+                      <p className="text-slate-500 text-xs">Selecciona una foto desde tu computador o celular</p>
+                    )}
+                  </div>
                 </Field>
 
                 <Field label="Asignar a usuario *" icon={<Building2 size={14} />}>
@@ -337,9 +457,10 @@ export default function AdminDashboard() {
 
                 <button
                   type="submit"
-                  className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition-colors"
+                  disabled={uploading}
+                  className="mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
                 >
-                  {editId ? 'Guardar cambios' : 'Crear propiedad'}
+                  {uploading ? 'Subiendo imagen…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
                 </button>
               </form>
             </div>
@@ -427,3 +548,4 @@ function Field({ label, icon, children }) {
     </label>
   )
 }
+

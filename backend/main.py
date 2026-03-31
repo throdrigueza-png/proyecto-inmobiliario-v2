@@ -3,13 +3,15 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+import cloudinary
+import cloudinary.uploader
 import models
 import schemas
 from database import engine, get_db
@@ -275,6 +277,56 @@ def delete_property(
         raise HTTPException(status_code=404, detail="Propiedad no encontrada")
     db.delete(prop)
     db.commit()
+
+
+# ── Image upload ──────────────────────────────────────────────────────────────
+
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+@app.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    _admin: models.User = Depends(require_admin),
+):
+    """Upload an image to Cloudinary and return its secure URL (admin only)."""
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG, WebP, GIF).",
+        )
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El servicio de almacenamiento de imágenes no está configurado en el servidor.",
+        )
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True,
+    )
+
+    contents = await file.read()
+    try:
+        result = cloudinary.uploader.upload(
+            contents,
+            folder="inmobiliaria",
+            resource_type="image",
+        )
+    except Exception as exc:
+        logger.error("Cloudinary upload failed: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="No se pudo subir la imagen al servicio de almacenamiento. Inténtalo de nuevo.",
+        )
+    return {"url": result["secure_url"]}
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
