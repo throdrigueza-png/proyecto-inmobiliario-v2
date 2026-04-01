@@ -84,7 +84,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'api-inmo-sena-thomas'
+          app-name: 'Inmobiliaria'
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
