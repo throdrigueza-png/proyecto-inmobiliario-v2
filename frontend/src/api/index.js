@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// In production the frontend is served by FastAPI on the same origin,
+// so all API calls use relative paths.  During local dev, Vite's proxy
+// forwards API requests to the FastAPI dev server.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api-inmo-sena-thomas.azurewebsites.net',
+  baseURL: '',
 })
 
 // Attach JWT token to every request if available

@@ -19,11 +19,11 @@ const STATUS_META = {
 }
 
 const TIPO_META = {
-  venta:    { label: 'Venta',    gradient: 'from-[#0078d4] to-[#004880]' },
+  venta:    { label: 'Venta',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
   arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
 }
 
-const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573105597895'
+const AGENT_PHONE = import.meta.env.VITE_AGENT_PHONE || '34658062023'
 
 export default function PropertyModal({ property, onClose }) {
   const [currentImage, setCurrentImage] = useState(0)
@@ -68,9 +68,9 @@ export default function PropertyModal({ property, onClose }) {
   const tipo   = TIPO_META[property.tipo_transaccion] ?? TIPO_META.venta
 
   const whatsappMsg = encodeURIComponent(
-    `Hola Mónica, me interesa la propiedad "${property.titulo}"${property.direccion ? ` en ${property.direccion}` : ''}. ¿Me puedes dar más información?`
+    `Hola, me interesa la propiedad "${property.titulo}"${property.direccion ? ` en ${property.direccion}` : ''}. ¿Me puedes dar más información?`
   )
-  const phone = property.owner?.telefono?.replace(/\D/g, '') || MONICA_PHONE
+  const phone = property.owner?.telefono?.replace(/\D/g, '') || AGENT_PHONE
   const whatsappUrl = `https://wa.me/${phone}?text=${whatsappMsg}`
 
   return (
@@ -85,8 +85,8 @@ export default function PropertyModal({ property, onClose }) {
       <div
         className="relative w-full sm:max-w-lg max-h-[95dvh] sm:max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-2xl"
         style={{
-          background: 'linear-gradient(180deg, #0d2137 0%, #091526 100%)',
-          border: '1px solid rgba(0,120,212,0.2)',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #050505 100%)',
+          border: '1px solid rgba(212,175,55,0.2)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -114,13 +114,13 @@ export default function PropertyModal({ property, onClose }) {
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center" style={{ background: '#0d2137' }}>
+            <div className="w-full h-full flex items-center justify-center" style={{ background: '#0a0a0a' }}>
               <Home size={56} className="text-slate-600" />
             </div>
           )}
 
           {/* Gradient at bottom of image */}
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0d2137] to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
 
           {/* Prev / Next arrows */}
           {totalImages > 1 && (
@@ -188,8 +188,8 @@ export default function PropertyModal({ property, onClose }) {
           {/* Price + size */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <Tag size={16} className="text-[#56a4ea]" />
-              <span className="text-xl font-bold text-[#56a4ea]">
+              <Tag size={16} className="text-[#F0C040]" />
+              <span className="text-xl font-bold text-[#F0C040]">
                 ${Number(property.precio).toLocaleString('es-CO')}
               </span>
             </div>
@@ -204,7 +204,7 @@ export default function PropertyModal({ property, onClose }) {
           {/* Address */}
           {property.direccion && (
             <div className="flex items-start gap-2 text-slate-400 text-sm">
-              <MapPin size={15} className="text-[#0078d4] mt-0.5 flex-shrink-0" />
+              <MapPin size={15} className="text-[#D4AF37] mt-0.5 flex-shrink-0" />
               <span>{property.direccion}</span>
             </div>
           )}
@@ -216,7 +216,7 @@ export default function PropertyModal({ property, onClose }) {
 
           {/* Map */}
           {property.latitud && property.longitud && (
-            <div className="rounded-2xl overflow-hidden border border-[#0078d4]/20" style={{ height: '200px' }}>
+            <div className="rounded-2xl overflow-hidden border border-[#D4AF37]/20" style={{ height: '200px' }}>
               <MapContainer
                 key={`${property.latitud}-${property.longitud}`}
                 center={[property.latitud, property.longitud]}

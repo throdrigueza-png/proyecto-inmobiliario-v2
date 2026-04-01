@@ -1,11 +1,14 @@
 import os
+import pathlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -43,15 +46,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 app = FastAPI(
-    title="Inmobiliaria Mónica Anzola API",
-    description="API REST para la plataforma inmobiliaria de Mónica Anzola.",
+    title="Agencia Inmobiliaria API",
+    description="API REST para la plataforma inmobiliaria.",
     version="2.0.0",
 )
 
+# ── CORS (only needed during local development; in production the frontend is
+#    served by FastAPI itself from the same origin) ───────────────────────────
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://nice-desert-0564dc70f.1.azurestaticapps.net",
 ]
 
 app.add_middleware(
@@ -484,3 +488,39 @@ def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+# ── Serve React SPA (monolithic deployment) ───────────────────────────────────
+# The React build output is placed in backend/static (via vite.config.js).
+# In production, FastAPI serves all frontend assets directly.
+# All routes not matched by the API above fall through to index.html so that
+# React Router can handle client-side navigation.
+
+_FRONTEND_DIST = pathlib.Path(__file__).parent / "static"
+
+# Mount the /assets sub-directory for fast static-file delivery with proper
+# content-type headers and browser caching.  This must be registered AFTER all
+# API routes so those routes are matched first.
+if (_FRONTEND_DIST / "assets").is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(_FRONTEND_DIST / "assets")),
+        name="frontend-assets",
+    )
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend(full_path: str):
+    """Serve static frontend files or fall back to index.html for SPA routing."""
+    # Serve an exact file if it exists (e.g. favicon.ico, vite.svg, …)
+    candidate = _FRONTEND_DIST / full_path
+    if candidate.is_file():
+        return FileResponse(str(candidate))
+    # Fall back to index.html so React Router handles the route client-side
+    index = _FRONTEND_DIST / "index.html"
+    if index.is_file():
+        return FileResponse(str(index))
+    raise HTTPException(
+        status_code=404,
+        detail="Frontend not found. Run `npm run build` inside the frontend directory.",
+    )

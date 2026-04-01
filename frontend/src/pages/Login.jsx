@@ -25,16 +25,10 @@ export default function Login() {
           'Asegúrate de configurarla como GitHub Secret para que el build de producción la incluya.'
       )
     }
-    if (!import.meta.env.VITE_API_URL) {
-      console.warn(
-        '[Auth] VITE_API_URL no está definida. ' +
-          'El frontend usará la URL de fallback hardcodeada; configura el secret en GitHub Actions.'
-      )
-    }
     if (googleInitialized.current || !window.google?.accounts?.id) return
     const clientId =
       import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-      '208393082876-0a1niao1vghku5kqlo6ei3b9b855no82.apps.googleusercontent.com'
+      '181911766292-np707bhan426aud7fnfd6m338582d7us.apps.googleusercontent.com'
     window.google.accounts.id.initialize({
       client_id: clientId,
       use_fedcm_for_prompt: true,
@@ -94,7 +88,7 @@ export default function Login() {
       {/* Background glow */}
       <div
         className="absolute inset-0 opacity-20"
-        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,120,212,0.4) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(212,175,55,0.4) 0%, transparent 70%)' }}
       />
 
       <MotionDiv
@@ -106,11 +100,11 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0078d4] to-[#004880] flex items-center justify-center shadow-lg shadow-[#0078d4]/40">
-              <Building2 size={22} className="text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#9B7E28] flex items-center justify-center shadow-lg shadow-[#D4AF37]/40">
+              <Building2 size={22} className="text-black" />
             </div>
-            <span className="font-bold text-xl text-white group-hover:text-[#56a4ea] transition-colors">
-              Inmobiliaria <span className="text-[#0078d4]">Mónica</span>
+            <span className="font-bold text-xl text-white group-hover:text-[#F0C040] transition-colors">
+              Inmobiliaria <span className="text-[#D4AF37]">Premium</span>
             </span>
           </Link>
         </div>
@@ -118,15 +112,15 @@ export default function Login() {
         <div
           className="rounded-2xl p-8 shadow-2xl"
           style={{
-            background: 'rgba(13,33,55,0.85)',
-            border: '1px solid rgba(0,120,212,0.2)',
+            background: 'rgba(5,5,5,0.85)',
+            border: '1px solid rgba(212,175,55,0.2)',
             backdropFilter: 'blur(20px)',
           }}
         >
           {/* Mode tabs */}
           <div
             className="flex rounded-xl p-1 mb-6"
-            style={{ background: 'rgba(2,12,27,0.8)', border: '1px solid rgba(0,120,212,0.15)' }}
+            style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(212,175,55,0.15)' }}
           >
             {['login', 'register'].map((m) => (
               <button
@@ -135,7 +129,7 @@ export default function Login() {
                 className="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200"
                 style={
                   mode === m
-                    ? { background: 'linear-gradient(135deg, #0078d4, #004880)', color: '#fff', boxShadow: '0 4px 12px rgba(0,120,212,0.35)' }
+                    ? { background: 'linear-gradient(135deg, #D4AF37, #9B7E28)', color: '#fff', boxShadow: '0 4px 12px rgba(212,175,55,0.35)' }
                     : { color: '#4a6480' }
                 }
               >
@@ -203,7 +197,7 @@ export default function Login() {
               type="submit"
               disabled={loading}
               className="mt-2 flex items-center justify-center gap-2 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #0078d4, #004880)', boxShadow: '0 4px 20px rgba(0,120,212,0.4)' }}
+              style={{ background: 'linear-gradient(135deg, #D4AF37, #9B7E28)', boxShadow: '0 4px 20px rgba(212,175,55,0.4)' }}
             >
               <LogIn size={17} />
               {loading ? 'Cargando…' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
@@ -211,16 +205,16 @@ export default function Login() {
           </form>
 
           <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px" style={{ background: 'rgba(0,120,212,0.2)' }} />
+            <div className="flex-1 h-px" style={{ background: 'rgba(212,175,55,0.2)' }} />
             <span className="text-slate-500 text-xs">o</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(0,120,212,0.2)' }} />
+            <div className="flex-1 h-px" style={{ background: 'rgba(212,175,55,0.2)' }} />
           </div>
 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 text-slate-300 hover:text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
-            style={{ border: '1px solid rgba(0,120,212,0.25)', background: 'rgba(0,120,212,0.05)' }}
+            style={{ border: '1px solid rgba(212,175,55,0.25)', background: 'rgba(212,175,55,0.05)' }}
           >
             <Chrome size={17} />
             Continuar con Google
@@ -230,7 +224,7 @@ export default function Login() {
         <p className="text-center mt-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-sm transition-colors hover:text-[#56a4ea]"
+            className="inline-flex items-center gap-1.5 text-sm transition-colors hover:text-[#F0C040]"
             style={{ color: '#4a6480' }}
           >
             <ArrowLeft size={14} /> Volver al catálogo
