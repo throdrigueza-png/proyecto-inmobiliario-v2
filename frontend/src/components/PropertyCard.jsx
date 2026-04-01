@@ -124,7 +124,7 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
               <div className="flex items-center gap-1.5">
                 <Tag size={13} className="text-[#F0C040]" />
                 <span className="text-white font-bold text-sm">
-                  ${Number(property.precio).toLocaleString('es-CO')}
+                  €{Number(property.precio).toLocaleString('es-ES')}
                 </span>
               </div>
               {property.tamaño_m2 && (

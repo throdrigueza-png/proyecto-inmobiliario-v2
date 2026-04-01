@@ -34,7 +34,7 @@ const STATUS_OPTS = [
 ]
 
 const STATUS_COLORS = {
-  disponible: 'bg-emerald-500/20 text-emerald-400',
+  disponible: 'bg-[#D4AF37]/20 text-[#F0C040]',
   reservado: 'bg-sky-500/20 text-sky-400',
   vendido: 'bg-red-500/20 text-red-400',
   arrendado: 'bg-amber-500/20 text-amber-400',
@@ -255,13 +255,13 @@ export default function AdminDashboard() {
   if (authLoading) return null
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <LayoutDashboard className="text-emerald-400" size={28} />
+            <LayoutDashboard className="text-[#D4AF37]" size={28} />
             <div>
               <h1 className="text-2xl font-bold text-white">Panel de Administrador</h1>
               <p className="text-slate-400 text-sm">Inmobiliaria Premium</p>
@@ -277,7 +277,7 @@ export default function AdminDashboard() {
               setNewImagePreviews([])
               setGeocodingFailed(false)
             }}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#F0C040] text-black font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Plus size={18} /> Nueva propiedad
           </button>
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
 
         {/* Notifications */}
         {success && (
-          <div className="mb-4 flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-4 py-3 rounded-xl">
+          <div className="mb-4 flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#F0C040] px-4 py-3 rounded-xl">
             <CheckCircle size={18} /> {success}
           </div>
         )}
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {STATUS_OPTS.map((s) => (
-            <div key={s.value} className="bg-slate-800 rounded-2xl p-5">
+            <div key={s.value} className="rounded-2xl p-5" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.2)' }}>
               <p className="text-slate-400 text-sm mb-1">{s.label}</p>
               <p className="text-3xl font-bold text-white">{statusCounts[s.value] ?? 0}</p>
             </div>
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
         {/* Property form modal */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="bg-slate-800 rounded-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            <div className="rounded-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.25)' }}>
               <button
                 className="absolute top-4 right-4 text-slate-400 hover:text-white"
                 onClick={closeForm}
@@ -367,7 +367,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Precio (COP) *" icon={<Tag size={14} />}>
+                  <Field label="Precio (EUR) *" icon={<Tag size={14} />}>
                     <input
                       required
                       type="number"
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                       value={form.precio}
                       onChange={(e) => setForm({ ...form, precio: e.target.value })}
                       className="input-dark"
-                      placeholder="250000000"
+                      placeholder="250000"
                     />
                   </Field>
                   <Field label="Tamaño (m²)" icon={<Maximize2 size={14} />}>
@@ -399,12 +399,12 @@ export default function AdminDashboard() {
                     value={form.direccion}
                     onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                     className="input-dark"
-                    placeholder="Calle 123 # 45-67, Bogotá, Colombia"
+                    placeholder="Calle Gran Vía 1, Madrid, España"
                     autoComplete="off"
                   />
                   {/* Coordinates status indicator */}
                   {form.latitud && form.longitud ? (
-                    <span className="flex items-center gap-1 text-emerald-400 text-xs mt-1">
+                    <span className="flex items-center gap-1 text-[#D4AF37] text-xs mt-1">
                       <MapPin size={11} />
                       Coordenadas detectadas ({Number(form.latitud).toFixed(5)}, {Number(form.longitud).toFixed(5)})
                     </span>
@@ -452,7 +452,7 @@ export default function AdminDashboard() {
                         {newImagePreviews.map((preview, idx) => {
                           const overallIdx = existingImageUrls.length + idx
                           return (
-                            <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-emerald-500/50 group/thumb">
+                            <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-[#D4AF37]/50 group/thumb">
                               <img
                                 src={/^(blob:|https?:)/.test(preview) ? preview : ''}
                                 alt={`Nueva imagen ${idx + 1}`}
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
                                   Portada
                                 </span>
                               )}
-                              <span className="absolute top-1 left-1 bg-emerald-500/80 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px]">
+                              <span className="absolute top-1 left-1 bg-[#D4AF37]/80 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px]">
                                 ↑
                               </span>
                               <button
@@ -529,7 +529,7 @@ export default function AdminDashboard() {
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+                  className="mt-2 bg-[#D4AF37] hover:bg-[#F0C040] disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-colors"
                 >
                   {uploading ? 'Subiendo imágenes…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
                 </button>
@@ -542,9 +542,9 @@ export default function AdminDashboard() {
         {loading ? (
           <p className="text-center text-slate-400 py-20 animate-pulse">Cargando…</p>
         ) : (
-          <div className="bg-slate-800 rounded-2xl overflow-hidden">
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
             <table className="w-full text-sm">
-              <thead className="bg-slate-900 text-slate-400 uppercase text-xs tracking-wider">
+              <thead className="text-slate-400 uppercase text-xs tracking-wider" style={{ background: '#050505' }}>
                 <tr>
                   <th className="px-5 py-4 text-left">Título</th>
                   <th className="px-5 py-4 text-left hidden sm:table-cell">Tipo</th>
@@ -554,7 +554,7 @@ export default function AdminDashboard() {
                   <th className="px-5 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-[#D4AF37]/10">
                 {properties.length === 0 && (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-slate-500">
@@ -563,13 +563,13 @@ export default function AdminDashboard() {
                   </tr>
                 )}
                 {properties.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-750 transition-colors">
+                  <tr key={p.id} className="hover:bg-[#D4AF37]/5 transition-colors" style={{ background: '#0a0a0a' }}>
                     <td className="px-5 py-4 text-white font-medium">{p.titulo}</td>
                     <td className="px-5 py-4 text-slate-300 hidden sm:table-cell capitalize">
                       {p.tipo_transaccion}
                     </td>
                     <td className="px-5 py-4 text-slate-300 hidden md:table-cell">
-                      ${Number(p.precio).toLocaleString('es-CO')}
+                      €{Number(p.precio).toLocaleString('es-ES')}
                     </td>
                     <td className="px-5 py-4 text-slate-400 hidden lg:table-cell">
                       {p.tamaño_m2 ? `${p.tamaño_m2} m²` : '—'}
@@ -583,7 +583,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEdit(p)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#F0C040] hover:bg-[#D4AF37]/10 transition-colors"
                           title="Editar"
                         >
                           <Pencil size={15} />
