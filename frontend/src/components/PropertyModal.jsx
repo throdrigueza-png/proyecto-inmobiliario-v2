@@ -190,7 +190,7 @@ export default function PropertyModal({ property, onClose }) {
             <div className="flex items-center gap-2">
               <Tag size={16} className="text-[#F0C040]" />
               <span className="text-xl font-bold text-[#F0C040]">
-                ${Number(property.precio).toLocaleString('es-CO')}
+                €{Number(property.precio).toLocaleString('es-ES')}
               </span>
             </div>
             {property.tamaño_m2 && (
