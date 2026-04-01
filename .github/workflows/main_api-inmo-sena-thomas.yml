@@ -42,28 +42,25 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: npm run build
 
-      # ── Step 2: Validate the Python backend ──────────────────────────────
+      # ── Step 2: Set up Python and install dependencies ───────────────────
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Create virtual environment and install dependencies
-        working-directory: ./backend
-        run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt
+      - name: Install Python dependencies
+        run: pip install -r backend/requirements.txt
 
       # ── Step 3: Stage for deployment ─────────────────────────────────────
       # The artifact root must contain main.py, requirements.txt, etc.
       # directly (Azure App Service / Oryx expects this layout).
-      # The built frontend (backend/static/) is included automatically because
-      # it was placed inside the backend/ directory by Vite.
+      # requirements.txt is explicitly copied to the deployment root so that
+      # Azure App Service (Oryx) can detect and install dependencies on startup.
       - name: Stage files for deployment
         run: |
           mkdir -p /tmp/deploy
-          rsync -av --exclude='antenv/' backend/ /tmp/deploy/
+          rsync -av backend/ /tmp/deploy/
+          cp backend/requirements.txt /tmp/deploy/requirements.txt
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
