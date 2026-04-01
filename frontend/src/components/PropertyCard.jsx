@@ -16,7 +16,7 @@ const STATUS_LABELS = {
 }
 
 const TIPO_LABELS = {
-  venta:    { label: 'Venta',    gradient: 'from-[#0078d4] to-[#004880]' },
+  venta:    { label: 'Venta',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
   arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
 }
 
@@ -60,22 +60,22 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
         transition={{ duration: 0.4, delay: index * 0.07, ease: 'easeOut' }}
         className="card-glow group relative rounded-2xl overflow-hidden cursor-pointer select-none"
         style={{
-          background: 'linear-gradient(145deg, #0d2137 0%, #091526 100%)',
-          border: '1px solid rgba(0,120,212,0.15)',
+          background: 'linear-gradient(145deg, #0a0a0a 0%, #050505 100%)',
+          border: '1px solid rgba(212,175,55,0.15)',
         }}
         onClick={() => setModalOpen(true)}
       >
         {/* ── Cover image ─────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden" style={{ height: '240px' }}>
           <img
-            src={coverImage || 'https://placehold.co/600x400/0d2137/2b8be0?text=Sin+imagen'}
+            src={coverImage || 'https://placehold.co/600x400/0a0a0a/D4AF37?text=Sin+imagen'}
             alt={property.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             draggable={false}
           />
 
           {/* Strong gradient overlay at bottom */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#091526] via-[#091526]/30 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/30 to-transparent pointer-events-none" />
 
           {/* Top-left: tipo badge */}
           <div className="absolute top-3 left-3 z-10">
@@ -117,19 +117,19 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
 
           {/* Bottom overlay: title + price */}
           <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-            <h3 className="text-white font-bold text-sm leading-tight line-clamp-1 mb-1.5 group-hover:text-[#56a4ea] transition-colors duration-200">
+            <h3 className="text-white font-bold text-sm leading-tight line-clamp-1 mb-1.5 group-hover:text-[#F0C040] transition-colors duration-200">
               {property.titulo}
             </h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Tag size={13} className="text-[#56a4ea]" />
+                <Tag size={13} className="text-[#F0C040]" />
                 <span className="text-white font-bold text-sm">
                   ${Number(property.precio).toLocaleString('es-CO')}
                 </span>
               </div>
               {property.tamaño_m2 && (
                 <div className="flex items-center gap-1">
-                  <Maximize2 size={11} className="text-[#56a4ea]" />
+                  <Maximize2 size={11} className="text-[#F0C040]" />
                   <span className="text-slate-300 text-xs">{property.tamaño_m2} m²</span>
                 </div>
               )}
@@ -141,19 +141,19 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
         <div className="px-4 py-3 flex items-center justify-between gap-2">
           {property.direccion ? (
             <div className="flex items-center gap-1.5 text-slate-400 text-xs flex-1 min-w-0">
-              <MapPin size={12} className="flex-shrink-0 text-[#0078d4]" />
+              <MapPin size={12} className="flex-shrink-0 text-[#D4AF37]" />
               <span className="truncate">{property.direccion}</span>
             </div>
           ) : (
             <span className="text-slate-600 text-xs">Sin dirección</span>
           )}
-          <span className="text-[#56a4ea] text-xs font-semibold flex-shrink-0 group-hover:translate-x-0.5 transition-transform">
+          <span className="text-[#F0C040] text-xs font-semibold flex-shrink-0 group-hover:translate-x-0.5 transition-transform">
             Ver más →
           </span>
         </div>
 
         {/* Bottom azure accent line */}
-        <div className="h-px bg-gradient-to-r from-transparent via-[#0078d4]/40 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />
       </MotionArticle>
 
       {/* Property detail modal */}

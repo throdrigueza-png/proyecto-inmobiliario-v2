@@ -13,10 +13,10 @@ const MotionDiv = motion.div
 const MotionH1 = motion.h1
 const MotionP = motion.p
 
-const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573105597895'
-const MONICA_WHATSAPP = `https://wa.me/${MONICA_PHONE}?text=${encodeURIComponent('Hola Mónica, estoy interesado/a en tus propiedades. ¿Me puedes dar más información?')}`
-const FACEBOOK_URL = import.meta.env.VITE_FACEBOOK_URL || 'https://www.facebook.com/monica.anzolaalvarez'
-const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/thomas_rod.anz/'
+const AGENT_PHONE = import.meta.env.VITE_AGENT_PHONE || '34658062023'
+const AGENT_WHATSAPP = `https://wa.me/${AGENT_PHONE}?text=${encodeURIComponent('Hola, estoy interesado/a en sus propiedades. ¿Me puede dar más información?')}`
+const FACEBOOK_URL = import.meta.env.VITE_FACEBOOK_URL || 'https://www.facebook.com'
+const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com'
 
 const TRANSACTION_TYPES = [
   { value: '', label: 'Todo' },
@@ -40,7 +40,7 @@ const STATS = [
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: '#0d2137', border: '1px solid rgba(0,120,212,0.1)' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.1)' }}>
       <div className="h-52 shimmer" />
       <div className="p-5 flex flex-col gap-3">
         <div className="h-5 shimmer rounded-lg w-3/4" />
@@ -108,9 +108,9 @@ export default function Home() {
               backgroundPosition: 'center',
             }}
           />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #020c1b 0%, #001a38 40%, #020c1b 100%)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #000000 0%, #0d0b00 40%, #000000 100%)' }} />
           {/* Radial glow */}
-          <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,120,212,0.35) 0%, transparent 70%)' }} />
+          <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,175,55,0.35) 0%, transparent 70%)' }} />
         </div>
 
         {/* Content */}
@@ -121,10 +121,10 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase mb-6"
-            style={{ background: 'rgba(0,120,212,0.15)', border: '1px solid rgba(0,120,212,0.35)', color: '#56a4ea' }}
+            style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.35)', color: '#F0C040' }}
           >
-            <span className="w-2 h-2 rounded-full bg-[#0078d4] animate-pulse" />
-            Asesora Inmobiliaria · Mónica Anzola
+            <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+            Agencia Inmobiliaria Premium
           </MotionDiv>
 
           {/* Headline */}
@@ -135,7 +135,7 @@ export default function Home() {
             className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-5 leading-tight"
           >
             Tu próximo hogar<br />
-            <span style={{ background: 'linear-gradient(135deg, #56a4ea, #0078d4, #004880)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <span style={{ background: 'linear-gradient(135deg, #F0C040, #D4AF37, #9B7E28)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               te está esperando
             </span>
           </MotionH1>
@@ -159,7 +159,7 @@ export default function Home() {
             className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-10"
           >
             <div className="flex-1 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0078d4]" size={17} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D4AF37]" size={17} />
               <input
                 type="text"
                 placeholder="Buscar por título, dirección o descripción…"
@@ -169,7 +169,7 @@ export default function Home() {
               />
             </div>
             <div className="relative">
-              <SlidersHorizontal className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0078d4]" size={16} />
+              <SlidersHorizontal className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D4AF37]" size={16} />
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
@@ -199,7 +199,7 @@ export default function Home() {
             className="flex items-center justify-center gap-3 flex-wrap"
           >
             <a
-              href={MONICA_WHATSAPP}
+              href={AGENT_WHATSAPP}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-green-500/30 hover:scale-105 active:scale-95"
@@ -241,9 +241,9 @@ export default function Home() {
                 <div
                   key={stat.label}
                   className="text-center py-4 px-3 rounded-2xl"
-                  style={{ background: 'rgba(13,33,55,0.7)', border: '1px solid rgba(0,120,212,0.2)', backdropFilter: 'blur(12px)' }}
+                  style={{ background: 'rgba(5,5,5,0.7)', border: '1px solid rgba(212,175,55,0.2)', backdropFilter: 'blur(12px)' }}
                 >
-                  <StatIcon size={20} className="text-[#0078d4] mx-auto mb-1" />
+                  <StatIcon size={20} className="text-[#D4AF37] mx-auto mb-1" />
                   <p className="text-white font-bold text-lg leading-none">{stat.value}</p>
                   <p className="text-slate-400 text-xs mt-0.5">{stat.label}</p>
                 </div>
@@ -255,7 +255,7 @@ export default function Home() {
         {/* Bottom wave divider */}
         <div className="absolute bottom-0 left-0 right-0 z-10">
           <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="none">
-            <path d="M0 60L480 20L960 50L1440 10V60H0Z" fill="#020c1b" />
+            <path d="M0 60L480 20L960 50L1440 10V60H0Z" fill="#000000" />
           </svg>
         </div>
       </header>
@@ -271,9 +271,9 @@ export default function Home() {
           className="mb-10"
         >
           <h2 className="text-2xl font-bold text-white mb-1">
-            Propiedades <span style={{ background: 'linear-gradient(135deg, #56a4ea, #0078d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>disponibles</span>
+            Propiedades <span style={{ background: 'linear-gradient(135deg, #F0C040, #D4AF37)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>disponibles</span>
           </h2>
-          <p className="text-slate-400 text-sm">Selecciona la que más se adapte a ti y comunícate directamente con Mónica.</p>
+          <p className="text-slate-400 text-sm">Selecciona la propiedad que más se adapte a ti y contáctanos directamente.</p>
         </MotionDiv>
 
         {/* Loading skeletons */}
@@ -301,8 +301,8 @@ export default function Home() {
             animate={{ opacity: 1 }}
             className="text-center py-24"
           >
-            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(0,120,212,0.1)', border: '1px solid rgba(0,120,212,0.2)' }}>
-              <Search size={28} className="text-[#0078d4]" />
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <Search size={28} className="text-[#D4AF37]" />
             </div>
             <p className="text-slate-300 font-medium">No se encontraron propiedades con esos filtros.</p>
             <p className="text-slate-500 text-sm mt-1">Intenta ajustar los criterios de búsqueda.</p>
@@ -334,11 +334,11 @@ export default function Home() {
 
       {/* ── Floating WhatsApp ────────────────────────────────────────────────── */}
       <a
-        href={MONICA_WHATSAPP}
+        href={AGENT_WHATSAPP}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-4 py-3 rounded-full shadow-2xl shadow-green-500/40 transition-all hover:scale-110 active:scale-95 whatsapp-pulse"
-        title="Contactar a Mónica por WhatsApp"
+        title="Contactar por WhatsApp"
         style={{ position: 'fixed' }}
       >
         <MessageCircle size={22} />
@@ -348,10 +348,10 @@ export default function Home() {
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer
         className="text-center py-8 text-sm"
-        style={{ background: 'rgba(2,12,27,0.9)', borderTop: '1px solid rgba(0,120,212,0.15)', color: '#4a6480' }}
+        style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(212,175,55,0.15)', color: '#4a6480' }}
       >
-        © {new Date().getFullYear()} Inmobiliaria Mónica Anzola ·{' '}
-        <span style={{ color: '#0078d4' }}>Asesora Inmobiliaria</span>
+        © {new Date().getFullYear()} Inmobiliaria Premium ·{' '}
+        <span style={{ color: '#D4AF37' }}>Agencia Inmobiliaria</span>
       </footer>
     </div>
   )

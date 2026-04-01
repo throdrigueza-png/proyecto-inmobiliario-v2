@@ -34,17 +34,17 @@ export default function Navbar() {
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-[#020c1b]/95 backdrop-blur-md shadow-lg shadow-[#0078d4]/10 border-b border-[#0078d4]/20'
-          : 'bg-[#020c1b]/80 backdrop-blur-sm border-b border-white/5'
+          ? 'bg-black/95 backdrop-blur-md shadow-lg shadow-[#D4AF37]/10 border-b border-[#D4AF37]/20'
+          : 'bg-black/80 backdrop-blur-sm border-b border-white/5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0078d4] to-[#004880] flex items-center justify-center shadow-lg shadow-[#0078d4]/30 group-hover:shadow-[#0078d4]/50 transition-shadow">
-            <Building2 size={20} className="text-white" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#9B7E28] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30 group-hover:shadow-[#D4AF37]/50 transition-shadow">
+            <Building2 size={20} className="text-black" />
           </div>
-          <span className="font-bold text-lg text-white group-hover:text-[#56a4ea] transition-colors">
-            Inmobiliaria <span className="text-[#0078d4]">Mónica</span>
+          <span className="font-bold text-lg text-white group-hover:text-[#F0C040] transition-colors">
+            Inmobiliaria <span className="text-[#D4AF37]">Premium</span>
           </span>
         </Link>
 
@@ -54,7 +54,7 @@ export default function Navbar() {
             to="/"
             className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200 ${
               location.pathname === '/'
-                ? 'bg-[#0078d4]/20 text-[#56a4ea] border border-[#0078d4]/30'
+                ? 'bg-[#D4AF37]/20 text-[#F0C040] border border-[#D4AF37]/30'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -66,7 +66,7 @@ export default function Navbar() {
               to="/admin"
               className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200 ${
                 location.pathname === '/admin'
-                  ? 'bg-[#0078d4]/20 text-[#56a4ea] border border-[#0078d4]/30'
+                  ? 'bg-[#D4AF37]/20 text-[#F0C040] border border-[#D4AF37]/30'
                   : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -77,7 +77,7 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-2 ml-2">
               {isAdmin && (
-                <span className="flex items-center gap-1 text-xs bg-[#0078d4]/15 text-[#56a4ea] px-2.5 py-1 rounded-full border border-[#0078d4]/30">
+                <span className="flex items-center gap-1 text-xs bg-[#D4AF37]/15 text-[#F0C040] px-2.5 py-1 rounded-full border border-[#D4AF37]/30">
                   <ShieldCheck size={11} /> Admin
                 </span>
               )}
@@ -92,7 +92,7 @@ export default function Navbar() {
           ) : (
             <Link
               to="/login"
-              className="ml-2 flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[#0078d4] hover:bg-[#005fa3] text-white transition-all duration-200 shadow-lg shadow-[#0078d4]/30 hover:shadow-[#0078d4]/50"
+              className="ml-2 flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[#D4AF37] hover:bg-[#B8951E] text-black transition-all duration-200 shadow-lg shadow-[#D4AF37]/30 hover:shadow-[#D4AF37]/50"
             >
               <LogIn size={15} /> Iniciar sesión
             </Link>
@@ -117,12 +117,12 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden overflow-hidden border-t border-[#0078d4]/20 px-4 py-3 flex flex-col gap-1 bg-[#020c1b]/95"
+            className="md:hidden overflow-hidden border-t border-[#D4AF37]/20 px-4 py-3 flex flex-col gap-1 bg-black/95"
           >
             <li>
               <Link
                 to="/"
-                className="flex items-center gap-2 text-slate-300 hover:text-[#56a4ea] py-2.5 px-2 rounded-lg hover:bg-[#0078d4]/10 transition-colors"
+                className="flex items-center gap-2 text-slate-300 hover:text-[#F0C040] py-2.5 px-2 rounded-lg hover:bg-[#D4AF37]/10 transition-colors"
                 onClick={() => setOpen(false)}
               >
                 <Building2 size={16} /> Catálogo
@@ -132,7 +132,7 @@ export default function Navbar() {
               <li>
                 <Link
                   to="/admin"
-                  className="flex items-center gap-2 text-slate-300 hover:text-[#56a4ea] py-2.5 px-2 rounded-lg hover:bg-[#0078d4]/10 transition-colors"
+                  className="flex items-center gap-2 text-slate-300 hover:text-[#F0C040] py-2.5 px-2 rounded-lg hover:bg-[#D4AF37]/10 transition-colors"
                   onClick={() => setOpen(false)}
                 >
                   <LayoutDashboard size={16} /> Admin
@@ -150,7 +150,7 @@ export default function Navbar() {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-2 text-[#56a4ea] hover:text-white py-2.5 px-2 rounded-lg hover:bg-[#0078d4]/10 transition-colors"
+                  className="flex items-center gap-2 text-[#F0C040] hover:text-white py-2.5 px-2 rounded-lg hover:bg-[#D4AF37]/10 transition-colors"
                   onClick={() => setOpen(false)}
                 >
                   <LogIn size={16} /> Iniciar sesión

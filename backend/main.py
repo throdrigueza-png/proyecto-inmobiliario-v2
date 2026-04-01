@@ -1,4 +1,5 @@
 import os
+import pathlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -6,6 +7,7 @@ from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -43,15 +45,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 app = FastAPI(
-    title="Inmobiliaria Mónica Anzola API",
-    description="API REST para la plataforma inmobiliaria de Mónica Anzola.",
+    title="Agencia Inmobiliaria API",
+    description="API REST para la plataforma inmobiliaria.",
     version="2.0.0",
 )
 
+# ── CORS (only needed during local development; in production the frontend is
+#    served by FastAPI itself from the same origin) ───────────────────────────
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://nice-desert-0564dc70f.1.azurestaticapps.net",
 ]
 
 app.add_middleware(
@@ -484,3 +487,19 @@ def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+# ── Serve React SPA (monolithic deployment) ───────────────────────────────────
+# The React build output is placed in backend/static (via vite.config.js).
+# StaticFiles with html=True serves index.html for any path that does not
+# match a physical file, enabling React Router client-side navigation.
+# This mount is registered AFTER all API routes so those routes take precedence.
+
+_FRONTEND_DIST = pathlib.Path(__file__).parent / "static"
+
+if _FRONTEND_DIST.is_dir():
+    app.mount(
+        "/",
+        StaticFiles(directory=str(_FRONTEND_DIST), html=True),
+        name="frontend",
+    )

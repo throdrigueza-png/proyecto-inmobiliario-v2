@@ -19,7 +19,7 @@ export default function ParticlesBackground() {
             value: 60,
             density: { enable: true, area: 900 },
           },
-          color: { value: ['#0078d4', '#56a4ea', '#2b8be0', '#90c3f2'] },
+          color: { value: ['#D4AF37', '#F0C040', '#E8B020', '#B8951E'] },
           shape: { type: 'circle' },
           opacity: {
             value: { min: 0.1, max: 0.5 },
@@ -31,7 +31,7 @@ export default function ParticlesBackground() {
           },
           links: {
             enable: true,
-            color: '#0078d4',
+            color: '#D4AF37',
             opacity: 0.15,
             distance: 130,
             width: 1,

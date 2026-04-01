@@ -264,7 +264,7 @@ export default function AdminDashboard() {
             <LayoutDashboard className="text-emerald-400" size={28} />
             <div>
               <h1 className="text-2xl font-bold text-white">Panel de Administrador</h1>
-              <p className="text-slate-400 text-sm">Inmobiliaria Mónica Anzola</p>
+              <p className="text-slate-400 text-sm">Inmobiliaria Premium</p>
             </div>
           </div>
           <button
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
                               className="w-full h-full object-cover"
                             />
                             {idx === 0 && (
-                              <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#0078d4]/90 text-white py-0.5">
+                              <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
                                 Portada
                               </span>
                             )}
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
                                 className="w-full h-full object-cover"
                               />
                               {overallIdx === 0 && (
-                                <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#0078d4]/90 text-white py-0.5">
+                                <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
                                   Portada
                                 </span>
                               )}
@@ -482,14 +482,14 @@ export default function AdminDashboard() {
 
                     {/* File picker */}
                     {totalImages < 10 && (
-                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#0078d4]/30 hover:border-[#0078d4]/60 rounded-xl p-4 cursor-pointer transition-colors group/drop">
-                        <ImageIcon size={20} className="text-[#0078d4]/60 group-hover/drop:text-[#0078d4] transition-colors" />
+                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#D4AF37]/30 hover:border-[#D4AF37]/60 rounded-xl p-4 cursor-pointer transition-colors group/drop">
+                        <ImageIcon size={20} className="text-[#D4AF37]/60 group-hover/drop:text-[#D4AF37] transition-colors" />
                         <span className="text-slate-400 text-xs text-center">
                           {totalImages === 0
                             ? 'Selecciona hasta 10 fotos'
                             : `Agregar más fotos (${10 - totalImages} disponibles)`}
                         </span>
-                        <span className="text-[#56a4ea] text-xs font-medium">
+                        <span className="text-[#F0C040] text-xs font-medium">
                           La primera foto será la portada de la card
                         </span>
                         <input

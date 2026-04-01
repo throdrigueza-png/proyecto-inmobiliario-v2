@@ -10,7 +10,7 @@ from database import Base
 ADMIN_EMAILS = {
     "thomasfernandoroan@gmail.com",
     "throdrigueza@unal.edu.co",
-    "serviasi@hotmail.com",
+    "juanframirezg0821@gmail.com",
     "thomas_frodrigueza@soy.sena.edu.co",
 }
 

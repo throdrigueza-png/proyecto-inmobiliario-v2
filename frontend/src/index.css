@@ -2,30 +2,30 @@
 
 @import "leaflet/dist/leaflet.css";
 
-/* ── Custom properties (Azure-blue palette) ─────────────────────────────── */
+/* ── Custom properties (Gold & Black luxury palette) ────────────────────── */
 :root {
-  --azure-50:  #e8f4fd;
-  --azure-100: #c3dff8;
-  --azure-200: #90c3f2;
-  --azure-300: #56a4ea;
-  --azure-400: #2b8be0;
-  --azure-500: #0078d4;  /* Azure brand blue */
-  --azure-600: #005fa3;
-  --azure-700: #004880;
-  --azure-800: #00305c;
-  --azure-900: #001a38;
+  --gold-50:  #fdf8e7;
+  --gold-100: #f9ecb4;
+  --gold-200: #f4dc78;
+  --gold-300: #F0C040;
+  --gold-400: #E8B020;
+  --gold-500: #D4AF37;  /* Primary gold */
+  --gold-600: #B8951E;
+  --gold-700: #9B7E28;
+  --gold-800: #7A6520;
+  --gold-900: #5a4a15;
 
-  --bg-primary:   #020c1b;
-  --bg-secondary: #091526;
-  --bg-card:      #0d2137;
-  --bg-card-hover:#0e2845;
+  --bg-primary:   #000000;
+  --bg-secondary: #050505;
+  --bg-card:      #0a0a0a;
+  --bg-card-hover:#111111;
 }
 
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
   background-color: var(--bg-primary);
-  color: #e2eaf4;
+  color: #e2d9c0;
   scroll-behavior: smooth;
 }
 
@@ -36,15 +36,15 @@ body {
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--azure-700); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--azure-500); }
+::-webkit-scrollbar-thumb { background: var(--gold-700); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-500); }
 
 /* ── Glass card effect ───────────────────────────────────────────────────── */
 .glass {
-  background: rgba(13, 33, 55, 0.6);
+  background: rgba(10, 10, 10, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 120, 212, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 /* ── Input styles ────────────────────────────────────────────────────────── */
@@ -52,23 +52,23 @@ body {
   width: 100%;
   padding: 0.625rem 0.875rem;
   border-radius: 0.75rem;
-  background-color: rgba(9, 21, 38, 0.8);
-  border: 1px solid rgba(0, 120, 212, 0.3);
-  color: #e2eaf4;
+  background-color: rgba(5, 5, 5, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #e2d9c0;
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .input-dark:focus {
-  border-color: var(--azure-500);
-  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.2);
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
 }
-.input-dark::placeholder { color: #4a6480; }
+.input-dark::placeholder { color: #6b5e3a; }
 .input-dark option { background-color: var(--bg-secondary); }
 
 /* ── Gradient text ───────────────────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #56a4ea 0%, #0078d4 50%, #005fa3 100%);
+  background: linear-gradient(135deg, #F0C040 0%, #D4AF37 50%, #9B7E28 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -80,7 +80,7 @@ body {
   100% { background-position:  200% center; }
 }
 .shimmer {
-  background: linear-gradient(90deg, #0d2137 25%, #0e3052 50%, #0d2137 75%);
+  background: linear-gradient(90deg, #0a0a0a 25%, #1a1508 50%, #0a0a0a 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -114,12 +114,12 @@ body {
 }
 .card-glow:hover {
   transform: translateY(-6px);
-  box-shadow: 0 20px 60px rgba(0, 120, 212, 0.25), 0 0 0 1px rgba(0, 120, 212, 0.3);
+  box-shadow: 0 20px 60px rgba(212, 175, 55, 0.2), 0 0 0 1px rgba(212, 175, 55, 0.3);
 }
 
 /* ── Price badge gradient ────────────────────────────────────────────────── */
 .price-badge {
-  background: linear-gradient(135deg, var(--azure-500), var(--azure-700));
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-700));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
