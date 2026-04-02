@@ -124,7 +124,7 @@ export default function Home() {
             style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.35)', color: '#F0C040' }}
           >
             <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
-            Agencia Inmobiliaria Premium
+            Costa Blanca Inmuebles
           </MotionDiv>
 
           {/* Headline */}
@@ -350,7 +350,7 @@ export default function Home() {
         className="text-center py-8 text-sm"
         style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(212,175,55,0.15)', color: '#4a6480' }}
       >
-        © {new Date().getFullYear()} Inmobiliaria Premium ·{' '}
+        © {new Date().getFullYear()} Costa Blanca Inmuebles ·{' '}
         <span style={{ color: '#D4AF37' }}>Agencia Inmobiliaria</span>
       </footer>
     </div>

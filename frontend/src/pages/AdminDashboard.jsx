@@ -264,7 +264,7 @@ export default function AdminDashboard() {
             <LayoutDashboard className="text-[#D4AF37]" size={28} />
             <div>
               <h1 className="text-2xl font-bold text-white">Panel de Administrador</h1>
-              <p className="text-slate-400 text-sm">Inmobiliaria Premium</p>
+              <p className="text-slate-400 text-sm">Costa Blanca Inmuebles</p>
             </div>
           </div>
           <button
@@ -371,7 +371,6 @@ export default function AdminDashboard() {
                     <input
                       required
                       type="number"
-                      min="0"
                       step="1000"
                       value={form.precio}
                       onChange={(e) => setForm({ ...form, precio: e.target.value })}

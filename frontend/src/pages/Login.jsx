@@ -60,7 +60,14 @@ export default function Login() {
       }
       navigate('/')
     } catch (err) {
-      const msg = err?.response?.data?.detail
+      const detail = err?.response?.data?.detail
+      // Pydantic v2 returns detail as an array of validation errors
+      let msg
+      if (Array.isArray(detail)) {
+        msg = detail.map((d) => d.msg || d.message || String(d)).join('; ')
+      } else {
+        msg = detail
+      }
       setError(msg || 'Credenciales incorrectas. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
@@ -104,7 +111,7 @@ export default function Login() {
               <Building2 size={22} className="text-black" />
             </div>
             <span className="font-bold text-xl text-white group-hover:text-[#F0C040] transition-colors">
-              Inmobiliaria <span className="text-[#D4AF37]">Premium</span>
+              Costa Blanca <span className="text-[#D4AF37]">Inmuebles</span>
             </span>
           </Link>
         </div>

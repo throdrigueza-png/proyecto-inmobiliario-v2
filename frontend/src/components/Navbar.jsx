@@ -44,7 +44,7 @@ export default function Navbar() {
             <Building2 size={20} className="text-black" />
           </div>
           <span className="font-bold text-lg text-white group-hover:text-[#F0C040] transition-colors">
-            Inmobiliaria <span className="text-[#D4AF37]">Premium</span>
+            Costa Blanca <span className="text-[#D4AF37]">Inmuebles</span>
           </span>
         </Link>
 
