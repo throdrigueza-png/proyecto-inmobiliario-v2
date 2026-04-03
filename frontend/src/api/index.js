@@ -57,4 +57,20 @@ export const getFavorites = () => api.get('/favorites')
 export const getUsers = () => api.get('/users')
 export const createUser = (data) => api.post('/users', data)
 
+// ── Leads ─────────────────────────────────────────────────────────────────────
+/** Check if the current user already has a lead profile. Returns { has_lead: boolean }. */
+export const getMyLeadStatus = () => api.get('/leads/me')
+
+/** Submit contact data for the current user. */
+export const createLead = (data) => api.post('/leads', data)
+
+/** Get all leads (admin only). */
+export const getLeads = () => api.get('/leads')
+
+// ── Valuation Modifiers ───────────────────────────────────────────────────────
+export const getValuationModifiers = () => api.get('/valuation-modifiers')
+export const createValuationModifier = (data) => api.post('/valuation-modifiers', data)
+export const updateValuationModifier = (id, data) => api.put(`/valuation-modifiers/${id}`, data)
+export const deleteValuationModifier = (id) => api.delete(`/valuation-modifiers/${id}`)
+
 export default api

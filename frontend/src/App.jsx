@@ -3,6 +3,7 @@ import { useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
 import AdminDashboard from './pages/AdminDashboard'
 import Login from './pages/Login'
+import Tasacion from './pages/Tasacion'
 
 function ProtectedAdminRoute({ children }) {
   const { user, loading, isAdmin } = useAuth()
@@ -18,6 +19,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/tasacion" element={<Tasacion />} />
         <Route
           path="/admin"
           element={

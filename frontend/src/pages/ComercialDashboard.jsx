@@ -7,16 +7,14 @@ import { getProperties } from '../api'
 const STATUS_OPTS = [
   { value: '', label: 'Todos' },
   { value: 'disponible', label: 'Disponible' },
-  { value: 'arrendado', label: 'Arrendado' },
+  { value: 'reservado', label: 'Reservado' },
   { value: 'vendido', label: 'Vendido' },
-  { value: 'cita_programada', label: 'Cita programada' },
 ]
 
 const STATUS_COLORS = {
   disponible: 'bg-emerald-500/20 text-emerald-400',
-  arrendado: 'bg-amber-500/20 text-amber-400',
+  reservado: 'bg-sky-500/20 text-sky-400',
   vendido: 'bg-red-500/20 text-red-400',
-  cita_programada: 'bg-sky-500/20 text-sky-400',
 }
 
 export default function ComercialDashboard() {

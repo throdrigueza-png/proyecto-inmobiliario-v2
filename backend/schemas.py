@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
-from models import UserRole, PropertyStatus, TipoTransaccion
+from models import UserRole, PropertyStatus, TipoVivienda, TipoOperacion
 
 
 # ── User schemas ─────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ class PropertyBase(BaseModel):
     longitud: Optional[float] = None
     # List of up to 10 Cloudinary image URLs; images[0] is the cover/default image.
     images: Optional[List[str]] = []
-    tipo_transaccion: TipoTransaccion = TipoTransaccion.venta
+    tipo_vivienda: TipoVivienda = TipoVivienda.piso
     estado: PropertyStatus = PropertyStatus.disponible
 
 
@@ -70,7 +71,7 @@ class PropertyUpdate(BaseModel):
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     images: Optional[List[str]] = None
-    tipo_transaccion: Optional[TipoTransaccion] = None
+    tipo_vivienda: Optional[TipoVivienda] = None
     estado: Optional[PropertyStatus] = None
 
 
@@ -91,3 +92,53 @@ class FavoriteStatus(BaseModel):
 
 class FavoriteIds(BaseModel):
     favorite_ids: List[int]
+
+
+# ── Lead schemas ──────────────────────────────────────────────────────────────
+
+class LeadCreate(BaseModel):
+    telefono: str
+    direccion: str
+    como_nos_conocio: str
+
+
+class LeadOut(BaseModel):
+    id: int
+    user_id: int
+    telefono: str
+    direccion: str
+    como_nos_conocio: str
+    created_at: datetime
+    user: UserOut
+
+    class Config:
+        from_attributes = True
+
+
+class LeadStatus(BaseModel):
+    has_lead: bool
+
+
+# ── ValuationModifier schemas ─────────────────────────────────────────────────
+
+class ValuationModifierBase(BaseModel):
+    nombre: str
+    valor_adicional: float
+    tipo_operacion: TipoOperacion = TipoOperacion.suma_fija
+
+
+class ValuationModifierCreate(ValuationModifierBase):
+    pass
+
+
+class ValuationModifierUpdate(BaseModel):
+    nombre: Optional[str] = None
+    valor_adicional: Optional[float] = None
+    tipo_operacion: Optional[TipoOperacion] = None
+
+
+class ValuationModifierOut(ValuationModifierBase):
+    id: int
+
+    class Config:
+        from_attributes = True

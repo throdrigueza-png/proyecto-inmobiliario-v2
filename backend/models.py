@@ -1,6 +1,7 @@
 import enum
+from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Float, Enum, ForeignKey, Text, JSON
+    Column, Integer, String, Float, Enum, ForeignKey, Text, JSON, DateTime,
 )
 from sqlalchemy.orm import relationship
 from database import Base
@@ -20,16 +21,24 @@ class UserRole(str, enum.Enum):
     cliente = "cliente"
 
 
-class TipoTransaccion(str, enum.Enum):
-    venta = "venta"
-    arriendo = "arriendo"
+class TipoVivienda(str, enum.Enum):
+    piso = "piso"
+    chalet = "chalet"
+    villa = "villa"
+    duplex = "duplex"
+    local = "local"
+    otro = "otro"
 
 
 class PropertyStatus(str, enum.Enum):
     disponible = "disponible"
-    arrendado = "arrendado"
-    vendido = "vendido"
     reservado = "reservado"
+    vendido = "vendido"
+
+
+class TipoOperacion(str, enum.Enum):
+    suma_fija = "suma_fija"
+    porcentaje = "porcentaje"
 
 
 class Favorite(Base):
@@ -52,6 +61,7 @@ class User(Base):
     rol = Column(Enum(UserRole), default=UserRole.cliente, nullable=False)
 
     properties = relationship("Property", back_populates="owner")
+    lead = relationship("Lead", back_populates="user", uselist=False)
 
 
 class Property(Base):
@@ -67,9 +77,9 @@ class Property(Base):
     longitud = Column(Float, nullable=True)
     # List of up to 10 Cloudinary image URLs; images[0] is the cover/default image.
     images = Column(JSON, nullable=True, default=list)
-    tipo_transaccion = Column(
-        Enum(TipoTransaccion),
-        default=TipoTransaccion.venta,
+    tipo_vivienda = Column(
+        Enum(TipoVivienda),
+        default=TipoVivienda.piso,
         nullable=False,
     )
     estado = Column(
@@ -80,3 +90,35 @@ class Property(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner = relationship("User", back_populates="properties")
+
+
+class Lead(Base):
+    """Contact data collected when a user shows interest in a property."""
+    __tablename__ = "leads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    telefono = Column(String(30), nullable=False)
+    direccion = Column(String(300), nullable=False)
+    como_nos_conocio = Column(String(100), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    user = relationship("User", back_populates="lead")
+
+
+class ValuationModifier(Base):
+    """Admin-configurable modifiers used in the property valuation tool."""
+    __tablename__ = "valuation_modifiers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    valor_adicional = Column(Float, nullable=False)
+    tipo_operacion = Column(
+        Enum(TipoOperacion),
+        default=TipoOperacion.suma_fija,
+        nullable=False,
+    )

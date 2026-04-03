@@ -2,27 +2,32 @@ import { useState } from 'react'
 import { Heart, Tag, Maximize2, MapPin, Images } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
-import { toggleFavorite } from '../api'
+import { toggleFavorite, getMyLeadStatus } from '../api'
 import PropertyModal from './PropertyModal'
+import LeadFormModal from './LeadFormModal'
 
 // Named motion component (makes ESLint happy with member-expression usage)
 const MotionArticle = motion.article
 
 const STATUS_LABELS = {
   disponible: { label: 'Disponible', bg: 'bg-emerald-500', ring: 'ring-emerald-500/30' },
-  arrendado:  { label: 'Arrendado',  bg: 'bg-amber-500',   ring: 'ring-amber-500/30'   },
-  vendido:    { label: 'Vendido',    bg: 'bg-red-500',     ring: 'ring-red-500/30'     },
   reservado:  { label: 'Reservado',  bg: 'bg-purple-500',  ring: 'ring-purple-500/30'  },
+  vendido:    { label: 'Vendido',    bg: 'bg-red-500',     ring: 'ring-red-500/30'     },
 }
 
-const TIPO_LABELS = {
-  venta:    { label: 'Venta',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
-  arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
+const TIPO_VIVIENDA_LABELS = {
+  piso:    { label: 'Piso',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
+  chalet:  { label: 'Chalet',  gradient: 'from-[#7c3aed] to-[#5b21b6]' },
+  villa:   { label: 'Villa',   gradient: 'from-[#0369a1] to-[#075985]' },
+  duplex:  { label: 'Dúplex',  gradient: 'from-[#0f766e] to-[#0d5752]' },
+  local:   { label: 'Local',   gradient: 'from-[#b45309] to-[#92400e]' },
+  otro:    { label: 'Otro',    gradient: 'from-[#374151] to-[#1f2937]' },
 }
 
 export default function PropertyCard({ property, index = 0, initialFavorited = false, onLoginRequired }) {
   const { user, isAdmin } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
+  const [leadFormOpen, setLeadFormOpen] = useState(false)
   const [favorited, setFavorited] = useState(initialFavorited)
   const [favLoading, setFavLoading] = useState(false)
 
@@ -30,7 +35,7 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
   const imageCount = property.images?.length ?? 0
 
   const status = STATUS_LABELS[property.estado] ?? STATUS_LABELS.disponible
-  const tipo   = TIPO_LABELS[property.tipo_transaccion] ?? TIPO_LABELS.venta
+  const tipo   = TIPO_VIVIENDA_LABELS[property.tipo_vivienda] ?? TIPO_VIVIENDA_LABELS.piso
 
   const handleFavorite = async (e) => {
     e.stopPropagation()
@@ -52,6 +57,32 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
     }
   }
 
+  const handleCardClick = async () => {
+    // Admin can always see property details directly
+    if (isAdmin) {
+      setModalOpen(true)
+      return
+    }
+    // Not logged in → redirect to login
+    if (!user) {
+      onLoginRequired?.()
+      return
+    }
+    // Logged in → check if lead profile exists
+    try {
+      const res = await getMyLeadStatus()
+      if (res.data.has_lead) {
+        setModalOpen(true)
+      } else {
+        setLeadFormOpen(true)
+      }
+    } catch (err) {
+      // Non-critical: fallback to opening modal if lead status check fails
+      console.error('[LeadGate] Could not check lead status:', err)
+      setModalOpen(true)
+    }
+  }
+
   return (
     <>
       <MotionArticle
@@ -63,7 +94,7 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
           background: 'linear-gradient(145deg, #0a0a0a 0%, #050505 100%)',
           border: '1px solid rgba(212,175,55,0.15)',
         }}
-        onClick={() => setModalOpen(true)}
+        onClick={handleCardClick}
       >
         {/* ── Cover image ─────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden" style={{ height: '240px' }}>
@@ -77,7 +108,7 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
           {/* Strong gradient overlay at bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/30 to-transparent pointer-events-none" />
 
-          {/* Top-left: tipo badge */}
+          {/* Top-left: tipo de vivienda badge */}
           <div className="absolute top-3 left-3 z-10">
             <span className={`text-xs font-bold px-3 py-1 rounded-full text-white bg-gradient-to-r ${tipo.gradient} shadow-lg`}>
               {tipo.label}
@@ -156,6 +187,17 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
         <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />
       </MotionArticle>
 
+      {/* Lead form gate modal */}
+      {leadFormOpen && (
+        <LeadFormModal
+          onSuccess={() => {
+            setLeadFormOpen(false)
+            setModalOpen(true)
+          }}
+          onClose={() => setLeadFormOpen(false)}
+        />
+      )}
+
       {/* Property detail modal */}
       {modalOpen && (
         <PropertyModal property={property} onClose={() => setModalOpen(false)} />
@@ -163,5 +205,6 @@ export default function PropertyCard({ property, index = 0, initialFavorited = f
     </>
   )
 }
+
 
 

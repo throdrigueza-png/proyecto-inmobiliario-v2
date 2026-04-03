@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, SlidersHorizontal, MessageCircle, Instagram, Facebook, TrendingUp, Shield, Star } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Search, SlidersHorizontal, MessageCircle, Instagram, Facebook, TrendingUp, Shield, Star, Calculator } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import PropertyCard from '../components/PropertyCard'
@@ -18,10 +18,14 @@ const AGENT_WHATSAPP = `https://wa.me/${AGENT_PHONE}?text=${encodeURIComponent('
 const FACEBOOK_URL = import.meta.env.VITE_FACEBOOK_URL || 'https://www.facebook.com'
 const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com'
 
-const TRANSACTION_TYPES = [
-  { value: '', label: 'Todo' },
-  { value: 'venta', label: 'Venta' },
-  { value: 'arriendo', label: 'Arriendo' },
+const TIPO_VIVIENDA_OPTS = [
+  { value: '', label: 'Todos los tipos' },
+  { value: 'piso', label: 'Piso' },
+  { value: 'chalet', label: 'Chalet' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'duplex', label: 'Dúplex' },
+  { value: 'local', label: 'Local' },
+  { value: 'otro', label: 'Otro' },
 ]
 
 const STATUSES = [
@@ -29,7 +33,6 @@ const STATUSES = [
   { value: 'disponible', label: 'Disponible' },
   { value: 'reservado', label: 'Reservado' },
   { value: 'vendido', label: 'Vendido' },
-  { value: 'arrendado', label: 'Arrendado' },
 ]
 
 const STATS = [
@@ -59,7 +62,7 @@ export default function Home() {
   const [properties, setProperties] = useState([])
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState('')
+  const [tipoViviendaFilter, setTipoViviendaFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -84,9 +87,9 @@ export default function Home() {
       p.titulo.toLowerCase().includes(search.toLowerCase()) ||
       (p.descripcion ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (p.direccion ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchType = typeFilter ? p.tipo_transaccion === typeFilter : true
+    const matchTipo = tipoViviendaFilter ? p.tipo_vivienda === tipoViviendaFilter : true
     const matchStatus = statusFilter ? p.estado === statusFilter : true
-    return matchSearch && matchType && matchStatus
+    return matchSearch && matchTipo && matchStatus
   })
 
   return (
@@ -171,11 +174,11 @@ export default function Home() {
             <div className="relative">
               <SlidersHorizontal className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D4AF37]" size={16} />
               <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                value={tipoViviendaFilter}
+                onChange={(e) => setTipoViviendaFilter(e.target.value)}
                 className="input-dark pl-10 pr-4 py-3.5 appearance-none cursor-pointer"
               >
-                {TRANSACTION_TYPES.map((t) => (
+                {TIPO_VIVIENDA_OPTS.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
@@ -206,6 +209,13 @@ export default function Home() {
             >
               <MessageCircle size={16} /> WhatsApp
             </a>
+            <Link
+              to="/tasacion"
+              className="flex items-center gap-2 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(212,175,55,0.2)', border: '1px solid rgba(212,175,55,0.4)' }}
+            >
+              <Calculator size={16} /> Tasar mi propiedad
+            </Link>
             <a
               href={FACEBOOK_URL}
               target="_blank"

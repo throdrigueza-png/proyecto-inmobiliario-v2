@@ -17,7 +17,7 @@ import cloudinary.uploader
 import models
 import schemas
 from database import engine, get_db
-from models import ADMIN_EMAILS
+from models import ADMIN_EMAILS, TipoVivienda, TipoOperacion
 
 logger = logging.getLogger(__name__)
 
@@ -487,6 +487,113 @@ def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+# ── Leads ─────────────────────────────────────────────────────────────────────
+
+@app.get("/leads/me", response_model=schemas.LeadStatus)
+def get_my_lead_status(
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user),
+):
+    """Return whether the current user has already submitted their contact data."""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    lead = db.query(models.Lead).filter(models.Lead.user_id == current_user.id).first()
+    return {"has_lead": lead is not None}
+
+
+@app.post("/leads", response_model=schemas.LeadOut, status_code=201)
+def create_lead(
+    payload: schemas.LeadCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user),
+):
+    """Save contact data for the current authenticated user (one per user)."""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    existing = db.query(models.Lead).filter(models.Lead.user_id == current_user.id).first()
+    if existing:
+        # Update existing lead instead of creating a duplicate
+        for field, value in payload.model_dump().items():
+            setattr(existing, field, value)
+        db.commit()
+        db.refresh(existing)
+        return existing
+    lead = models.Lead(user_id=current_user.id, **payload.model_dump())
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+@app.get("/leads", response_model=List[schemas.LeadOut])
+def list_leads(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    """Return all leads (admin only)."""
+    return db.query(models.Lead).offset(skip).limit(limit).all()
+
+
+# ── Valuation Modifiers ───────────────────────────────────────────────────────
+
+@app.get("/valuation-modifiers", response_model=List[schemas.ValuationModifierOut])
+def list_valuation_modifiers(db: Session = Depends(get_db)):
+    """Return all valuation modifiers (public — used by the tasación tool)."""
+    return db.query(models.ValuationModifier).all()
+
+
+@app.post("/valuation-modifiers", response_model=schemas.ValuationModifierOut, status_code=201)
+def create_valuation_modifier(
+    payload: schemas.ValuationModifierCreate,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    """Create a new valuation modifier (admin only)."""
+    modifier = models.ValuationModifier(**payload.model_dump())
+    db.add(modifier)
+    db.commit()
+    db.refresh(modifier)
+    return modifier
+
+
+@app.put("/valuation-modifiers/{modifier_id}", response_model=schemas.ValuationModifierOut)
+def update_valuation_modifier(
+    modifier_id: int,
+    payload: schemas.ValuationModifierUpdate,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    """Update a valuation modifier (admin only)."""
+    modifier = db.query(models.ValuationModifier).filter(
+        models.ValuationModifier.id == modifier_id
+    ).first()
+    if not modifier:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(modifier, field, value)
+    db.commit()
+    db.refresh(modifier)
+    return modifier
+
+
+@app.delete("/valuation-modifiers/{modifier_id}", status_code=204)
+def delete_valuation_modifier(
+    modifier_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    """Delete a valuation modifier (admin only)."""
+    modifier = db.query(models.ValuationModifier).filter(
+        models.ValuationModifier.id == modifier_id
+    ).first()
+    if not modifier:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+    db.delete(modifier)
+    db.commit()
 
 
 # ── Serve React SPA (monolithic deployment) ───────────────────────────────────
