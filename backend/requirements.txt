@@ -6,6 +6,7 @@ psycopg2-binary
 pydantic[email]
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt
 python-multipart
 alembic
 google-auth

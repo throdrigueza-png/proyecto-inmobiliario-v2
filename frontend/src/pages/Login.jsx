@@ -65,10 +65,14 @@ export default function Login() {
       let msg
       if (Array.isArray(detail)) {
         msg = detail.map((d) => d.msg || d.message || String(d)).join('; ')
-      } else {
+      } else if (typeof detail === 'string') {
         msg = detail
+      } else {
+        msg = mode === 'register'
+          ? 'Error inesperado al crear la cuenta. Inténtalo de nuevo.'
+          : 'Credenciales incorrectas. Inténtalo de nuevo.'
       }
-      setError(msg || 'Credenciales incorrectas. Inténtalo de nuevo.')
+      setError(msg)
     } finally {
       setLoading(false)
     }

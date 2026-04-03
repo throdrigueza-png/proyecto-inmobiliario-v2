@@ -10,6 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import cloudinary
@@ -484,8 +485,12 @@ def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db)):
 
     user = models.User(**user_data)
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email ya registrado")
     return user
 
 
