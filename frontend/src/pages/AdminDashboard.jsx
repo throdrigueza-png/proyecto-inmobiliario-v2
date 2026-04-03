@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Plus, Pencil, Trash2, CheckCircle, X,
   Building2, Tag, Maximize2, MapPin, ImageIcon, Images,
+  Users, Calculator, Phone, Home,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { getProperties, createProperty, updateProperty, deleteProperty, getUsers, uploadImages } from '../api'
+import {
+  getProperties, createProperty, updateProperty, deleteProperty,
+  getUsers, uploadImages, getLeads,
+  getValuationModifiers, createValuationModifier, updateValuationModifier, deleteValuationModifier,
+} from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
 const EMPTY_FORM = {
@@ -16,36 +21,58 @@ const EMPTY_FORM = {
   direccion: '',
   latitud: '',
   longitud: '',
-  tipo_transaccion: 'venta',
+  tipo_vivienda: 'piso',
   estado: 'disponible',
   owner_id: '',
 }
 
-const TIPO_OPTS = [
-  { value: 'venta', label: 'Venta' },
-  { value: 'arriendo', label: 'Arriendo' },
+const TIPO_VIVIENDA_OPTS = [
+  { value: 'piso', label: 'Piso' },
+  { value: 'chalet', label: 'Chalet' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'duplex', label: 'Dúplex' },
+  { value: 'local', label: 'Local' },
+  { value: 'otro', label: 'Otro' },
 ]
 
 const STATUS_OPTS = [
   { value: 'disponible', label: 'Disponible' },
   { value: 'reservado', label: 'Reservado' },
   { value: 'vendido', label: 'Vendido' },
-  { value: 'arrendado', label: 'Arrendado' },
 ]
 
 const STATUS_COLORS = {
   disponible: 'bg-[#D4AF37]/20 text-[#F0C040]',
   reservado: 'bg-sky-500/20 text-sky-400',
   vendido: 'bg-red-500/20 text-red-400',
-  arrendado: 'bg-amber-500/20 text-amber-400',
 }
+
+const COMO_LABELS = {
+  redes_sociales: 'Redes sociales',
+  familia: 'Familia',
+  conocidos: 'Conocidos / Amigos',
+  busqueda_web: 'Búsqueda en internet',
+  otro: 'Otro',
+}
+
+const TIPO_OPERACION_OPTS = [
+  { value: 'suma_fija', label: 'Suma fija (€)' },
+  { value: 'porcentaje', label: 'Porcentaje (%)' },
+]
+
+const EMPTY_MODIFIER = { nombre: '', valor_adicional: '', tipo_operacion: 'suma_fija' }
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { user, isAdmin, loading: authLoading } = useAuth()
 
+  // Active tab: 'properties' | 'leads' | 'tasacion'
+  const [activeTab, setActiveTab] = useState('properties')
+
   const [properties, setProperties] = useState([])
   const [users, setUsers] = useState([])
+  const [leads, setLeads] = useState([])
+  const [modifiers, setModifiers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [editId, setEditId] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -54,6 +81,11 @@ export default function AdminDashboard() {
   const [success, setSuccess] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [geocodingFailed, setGeocodingFailed] = useState(false)
+
+  // Modifier form state
+  const [modifierForm, setModifierForm] = useState(EMPTY_MODIFIER)
+  const [modifierEditId, setModifierEditId] = useState(null)
+  const [showModifierForm, setShowModifierForm] = useState(false)
 
   // Multi-image upload state
   // existingImageUrls: already-uploaded URLs (from Cloudinary) kept from a previous save
@@ -76,10 +108,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!user || !isAdmin) return
-    Promise.all([getProperties(), getUsers()])
-      .then(([pRes, uRes]) => {
+    Promise.all([getProperties(), getUsers(), getLeads(), getValuationModifiers()])
+      .then(([pRes, uRes, lRes, mRes]) => {
         setProperties(pRes.data)
         setUsers(uRes.data)
+        setLeads(lRes.data)
+        setModifiers(mRes.data)
         setLoading(false)
       })
       .catch(() => {
@@ -222,7 +256,7 @@ export default function AdminDashboard() {
       direccion: p.direccion ?? '',
       latitud: p.latitud ?? '',
       longitud: p.longitud ?? '',
-      tipo_transaccion: p.tipo_transaccion ?? 'venta',
+      tipo_vivienda: p.tipo_vivienda ?? 'piso',
       estado: p.estado,
       owner_id: p.owner_id,
     })
@@ -247,6 +281,49 @@ export default function AdminDashboard() {
     }
   }
 
+  // ── Modifier CRUD handlers ─────────────────────────────────────────────────
+  const handleModifierSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    const payload = {
+      nombre: modifierForm.nombre,
+      valor_adicional: parseFloat(modifierForm.valor_adicional),
+      tipo_operacion: modifierForm.tipo_operacion,
+    }
+    try {
+      if (modifierEditId) {
+        await updateValuationModifier(modifierEditId, payload)
+        notify('Modificador actualizado.')
+      } else {
+        await createValuationModifier(payload)
+        notify('Modificador creado.')
+      }
+      setModifierForm(EMPTY_MODIFIER)
+      setModifierEditId(null)
+      setShowModifierForm(false)
+      refresh()
+    } catch {
+      setError('Error guardando el modificador.')
+    }
+  }
+
+  const handleModifierEdit = (m) => {
+    setModifierForm({ nombre: m.nombre, valor_adicional: m.valor_adicional, tipo_operacion: m.tipo_operacion })
+    setModifierEditId(m.id)
+    setShowModifierForm(true)
+  }
+
+  const handleModifierDelete = async (id) => {
+    if (!confirm('¿Eliminar este modificador?')) return
+    try {
+      await deleteValuationModifier(id)
+      notify('Modificador eliminado.')
+      refresh()
+    } catch {
+      setError('Error eliminando el modificador.')
+    }
+  }
+
   const statusCounts = STATUS_OPTS.reduce((acc, s) => {
     acc[s.value] = properties.filter((p) => p.estado === s.value).length
     return acc
@@ -259,7 +336,8 @@ export default function AdminDashboard() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <LayoutDashboard className="text-[#D4AF37]" size={28} />
             <div>
@@ -267,20 +345,55 @@ export default function AdminDashboard() {
               <p className="text-slate-400 text-sm">Costa Blanca Inmuebles</p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              setShowForm(true)
-              setEditId(null)
-              setForm(EMPTY_FORM)
-              setExistingImageUrls([])
-              setNewImageFiles([])
-              setNewImagePreviews([])
-              setGeocodingFailed(false)
-            }}
-            className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#F0C040] text-black font-medium px-4 py-2 rounded-xl transition-colors"
-          >
-            <Plus size={18} /> Nueva propiedad
-          </button>
+          {activeTab === 'properties' && (
+            <button
+              onClick={() => {
+                setShowForm(true)
+                setEditId(null)
+                setForm(EMPTY_FORM)
+                setExistingImageUrls([])
+                setNewImageFiles([])
+                setNewImagePreviews([])
+                setGeocodingFailed(false)
+              }}
+              className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#F0C040] text-black font-medium px-4 py-2 rounded-xl transition-colors"
+            >
+              <Plus size={18} /> Nueva propiedad
+            </button>
+          )}
+          {activeTab === 'tasacion' && (
+            <button
+              onClick={() => {
+                setModifierForm(EMPTY_MODIFIER)
+                setModifierEditId(null)
+                setShowModifierForm(true)
+              }}
+              className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#F0C040] text-black font-medium px-4 py-2 rounded-xl transition-colors"
+            >
+              <Plus size={18} /> Nuevo modificador
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8 border-b border-[#D4AF37]/20 pb-0">
+          {[
+            { key: 'properties', label: 'Propiedades', icon: <Home size={15} /> },
+            { key: 'leads', label: 'Leads', icon: <Users size={15} /> },
+            { key: 'tasacion', label: 'Config. Tasación', icon: <Calculator size={15} /> },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-xl border-b-2 transition-all -mb-px ${
+                activeTab === tab.key
+                  ? 'border-[#D4AF37] text-[#F0C040] bg-[#D4AF37]/10'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {tab.icon}{tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Notifications */}
@@ -296,311 +409,406 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {STATUS_OPTS.map((s) => (
-            <div key={s.value} className="rounded-2xl p-5" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.2)' }}>
-              <p className="text-slate-400 text-sm mb-1">{s.label}</p>
-              <p className="text-3xl font-bold text-white">{statusCounts[s.value] ?? 0}</p>
+        {/* ── PROPERTIES TAB ──────────────────────────────────────────────────── */}
+        {activeTab === 'properties' && (
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {STATUS_OPTS.map((s) => (
+                <div key={s.value} className="rounded-2xl p-5" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.2)' }}>
+                  <p className="text-slate-400 text-sm mb-1">{s.label}</p>
+                  <p className="text-3xl font-bold text-white">{statusCounts[s.value] ?? 0}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Property form modal */}
-        {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="rounded-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <button
-                className="absolute top-4 right-4 text-slate-400 hover:text-white"
-                onClick={closeForm}
-              >
-                <X size={22} />
-              </button>
-              <h2 className="text-xl font-bold text-white mb-5">
-                {editId ? 'Editar propiedad' : 'Nueva propiedad'}
-              </h2>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <Field label="Título *" icon={<Building2 size={14} />}>
-                  <input
-                    required
-                    type="text"
-                    value={form.titulo}
-                    onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                    className="input-dark"
-                    placeholder="Casa en el norte, Apto 101…"
-                  />
-                </Field>
+            {/* Property form modal */}
+            {showForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                <div className="rounded-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.25)' }}>
+                  <button
+                    className="absolute top-4 right-4 text-slate-400 hover:text-white"
+                    onClick={closeForm}
+                  >
+                    <X size={22} />
+                  </button>
+                  <h2 className="text-xl font-bold text-white mb-5">
+                    {editId ? 'Editar propiedad' : 'Nueva propiedad'}
+                  </h2>
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <Field label="Título *" icon={<Building2 size={14} />}>
+                      <input
+                        required
+                        type="text"
+                        value={form.titulo}
+                        onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                        className="input-dark"
+                        placeholder="Casa en el norte, Apto 101…"
+                      />
+                    </Field>
 
-                <Field label="Descripción" icon={<Pencil size={14} />}>
-                  <textarea
-                    rows={3}
-                    value={form.descripcion}
-                    onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                    className="input-dark resize-none"
-                    placeholder="Descripción del inmueble…"
-                  />
-                </Field>
+                    <Field label="Descripción" icon={<Pencil size={14} />}>
+                      <textarea
+                        rows={3}
+                        value={form.descripcion}
+                        onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                        className="input-dark resize-none"
+                        placeholder="Descripción del inmueble…"
+                      />
+                    </Field>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Tipo *" icon={<Tag size={14} />}>
-                    <select
-                      value={form.tipo_transaccion}
-                      onChange={(e) => setForm({ ...form, tipo_transaccion: e.target.value })}
-                      className="input-dark"
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label="Tipo de vivienda *" icon={<Home size={14} />}>
+                        <select
+                          value={form.tipo_vivienda}
+                          onChange={(e) => setForm({ ...form, tipo_vivienda: e.target.value })}
+                          className="input-dark"
+                        >
+                          {TIPO_VIVIENDA_OPTS.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Estado *" icon={<Tag size={14} />}>
+                        <select
+                          value={form.estado}
+                          onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                          className="input-dark"
+                        >
+                          {STATUS_OPTS.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label="Precio (EUR) *" icon={<Tag size={14} />}>
+                        <input
+                          required
+                          type="number"
+                          step="1000"
+                          value={form.precio}
+                          onChange={(e) => setForm({ ...form, precio: e.target.value })}
+                          className="input-dark"
+                          placeholder="250000"
+                        />
+                      </Field>
+                      <Field label="Tamaño (m²)" icon={<Maximize2 size={14} />}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={form.tamaño_m2}
+                          onChange={(e) => setForm({ ...form, tamaño_m2: e.target.value })}
+                          className="input-dark"
+                          placeholder="80"
+                        />
+                      </Field>
+                    </div>
+
+                    {/* Address — Nominatim (OpenStreetMap) auto-geocodes on input */}
+                    <Field label="Dirección" icon={<MapPin size={14} />}>
+                      <input
+                        type="text"
+                        value={form.direccion}
+                        onChange={(e) => setForm({ ...form, direccion: e.target.value })}
+                        className="input-dark"
+                        placeholder="Calle Gran Vía 1, Madrid, España"
+                        autoComplete="off"
+                      />
+                      {form.latitud && form.longitud ? (
+                        <span className="flex items-center gap-1 text-[#D4AF37] text-xs mt-1">
+                          <MapPin size={11} />
+                          Coordenadas detectadas ({Number(form.latitud).toFixed(5)}, {Number(form.longitud).toFixed(5)})
+                        </span>
+                      ) : geocodingFailed ? (
+                        <span className="text-amber-400 text-xs mt-1">
+                          No se encontraron coordenadas para esta dirección. Intenta con una dirección más completa.
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-xs mt-1">
+                          Escribe la dirección completa para detectar las coordenadas automáticamente
+                        </span>
+                      )}
+                    </Field>
+
+                    {/* Multi-image upload (up to 10) */}
+                    <Field label={`Fotos del predio (${totalImages}/10)`} icon={<Images size={14} />}>
+                      <div className="flex flex-col gap-3">
+                        {(existingImageUrls.length > 0 || newImagePreviews.length > 0) && (
+                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                            {existingImageUrls.map((url, idx) => (
+                              <div key={`existing-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-slate-600 group/thumb">
+                                <img
+                                  src={/^https?:/.test(url) ? url : ''}
+                                  alt={`Imagen ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                {idx === 0 && (
+                                  <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
+                                    Portada
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => removeExistingImage(idx)}
+                                  className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
+                                  aria-label="Eliminar imagen"
+                                >
+                                  <X size={11} />
+                                </button>
+                              </div>
+                            ))}
+                            {newImagePreviews.map((preview, idx) => {
+                              const overallIdx = existingImageUrls.length + idx
+                              return (
+                                <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-[#D4AF37]/50 group/thumb">
+                                  <img
+                                    src={/^(blob:|https?:)/.test(preview) ? preview : ''}
+                                    alt={`Nueva imagen ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {overallIdx === 0 && (
+                                    <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
+                                      Portada
+                                    </span>
+                                  )}
+                                  <span className="absolute top-1 left-1 bg-[#D4AF37]/80 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px]">↑</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeNewImage(idx)}
+                                    className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
+                                    aria-label="Eliminar imagen"
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {totalImages < 10 && (
+                          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#D4AF37]/30 hover:border-[#D4AF37]/60 rounded-xl p-4 cursor-pointer transition-colors group/drop">
+                            <ImageIcon size={20} className="text-[#D4AF37]/60 group-hover/drop:text-[#D4AF37] transition-colors" />
+                            <span className="text-slate-400 text-xs text-center">
+                              {totalImages === 0 ? 'Selecciona hasta 10 fotos' : `Agregar más fotos (${10 - totalImages} disponibles)`}
+                            </span>
+                            <span className="text-[#F0C040] text-xs font-medium">La primera foto será la portada de la card</span>
+                            <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+                          </label>
+                        )}
+                        {totalImages >= 10 && (
+                          <p className="text-amber-400 text-xs text-center py-2">Límite de 10 imágenes alcanzado. Elimina alguna para agregar más.</p>
+                        )}
+                      </div>
+                    </Field>
+
+                    <Field label="Asignar a usuario *" icon={<Building2 size={14} />}>
+                      <select
+                        required
+                        value={form.owner_id}
+                        onChange={(e) => setForm({ ...form, owner_id: e.target.value })}
+                        className="input-dark"
+                      >
+                        <option value="">Seleccionar usuario…</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>{u.nombre} ({u.email})</option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <button
+                      type="submit"
+                      disabled={uploading}
+                      className="mt-2 bg-[#D4AF37] hover:bg-[#F0C040] disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-colors"
                     >
-                      {TIPO_OPTS.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Estado *" icon={<Tag size={14} />}>
-                    <select
-                      value={form.estado}
-                      onChange={(e) => setForm({ ...form, estado: e.target.value })}
-                      className="input-dark"
-                    >
-                      {STATUS_OPTS.map((s) => (
-                        <option key={s.value} value={s.value}>{s.label}</option>
-                      ))}
-                    </select>
-                  </Field>
+                      {uploading ? 'Subiendo imágenes…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
+                    </button>
+                  </form>
                 </div>
+              </div>
+            )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Precio (EUR) *" icon={<Tag size={14} />}>
-                    <input
-                      required
-                      type="number"
-                      step="1000"
-                      value={form.precio}
-                      onChange={(e) => setForm({ ...form, precio: e.target.value })}
-                      className="input-dark"
-                      placeholder="250000"
-                    />
-                  </Field>
-                  <Field label="Tamaño (m²)" icon={<Maximize2 size={14} />}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={form.tamaño_m2}
-                      onChange={(e) => setForm({ ...form, tamaño_m2: e.target.value })}
-                      className="input-dark"
-                      placeholder="80"
-                    />
-                  </Field>
-                </div>
-
-                {/* Address — Nominatim (OpenStreetMap) auto-geocodes on input */}
-                <Field label="Dirección" icon={<MapPin size={14} />}>
-                  <input
-                    type="text"
-                    value={form.direccion}
-                    onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-                    className="input-dark"
-                    placeholder="Calle Gran Vía 1, Madrid, España"
-                    autoComplete="off"
-                  />
-                  {/* Coordinates status indicator */}
-                  {form.latitud && form.longitud ? (
-                    <span className="flex items-center gap-1 text-[#D4AF37] text-xs mt-1">
-                      <MapPin size={11} />
-                      Coordenadas detectadas ({Number(form.latitud).toFixed(5)}, {Number(form.longitud).toFixed(5)})
-                    </span>
-                  ) : geocodingFailed ? (
-                    <span className="text-amber-400 text-xs mt-1">
-                      No se encontraron coordenadas para esta dirección. Intenta con una dirección más completa.
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 text-xs mt-1">
-                      Escribe la dirección completa para detectar las coordenadas automáticamente
-                    </span>
-                  )}
-                </Field>
-
-                {/* Multi-image upload (up to 10) */}
-                <Field label={`Fotos del predio (${totalImages}/10)`} icon={<Images size={14} />}>
-                  <div className="flex flex-col gap-3">
-                    {/* Image thumbnails grid */}
-                    {(existingImageUrls.length > 0 || newImagePreviews.length > 0) && (
-                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        {/* Existing URLs */}
-                        {existingImageUrls.map((url, idx) => (
-                          <div key={`existing-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-slate-600 group/thumb">
-                            <img
-                              src={/^https?:/.test(url) ? url : ''}
-                              alt={`Imagen ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            {idx === 0 && (
-                              <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
-                                Portada
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => removeExistingImage(idx)}
-                              className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
-                              aria-label="Eliminar imagen"
-                            >
-                              <X size={11} />
+            {/* Properties Table */}
+            {loading ? (
+              <p className="text-center text-slate-400 py-20 animate-pulse">Cargando…</p>
+            ) : (
+              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
+                <table className="w-full text-sm">
+                  <thead className="text-slate-400 uppercase text-xs tracking-wider" style={{ background: '#050505' }}>
+                    <tr>
+                      <th className="px-5 py-4 text-left">Título</th>
+                      <th className="px-5 py-4 text-left hidden sm:table-cell">Tipo</th>
+                      <th className="px-5 py-4 text-left hidden md:table-cell">Precio</th>
+                      <th className="px-5 py-4 text-left hidden lg:table-cell">Tamaño</th>
+                      <th className="px-5 py-4 text-left">Estado</th>
+                      <th className="px-5 py-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#D4AF37]/10">
+                    {properties.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-slate-500">Sin propiedades aún. ¡Crea la primera!</td>
+                      </tr>
+                    )}
+                    {properties.map((p) => (
+                      <tr key={p.id} className="hover:bg-[#D4AF37]/5 transition-colors" style={{ background: '#0a0a0a' }}>
+                        <td className="px-5 py-4 text-white font-medium">{p.titulo}</td>
+                        <td className="px-5 py-4 text-slate-300 hidden sm:table-cell capitalize">{p.tipo_vivienda}</td>
+                        <td className="px-5 py-4 text-slate-300 hidden md:table-cell">€{Number(p.precio).toLocaleString('es-ES')}</td>
+                        <td className="px-5 py-4 text-slate-400 hidden lg:table-cell">{p.tamaño_m2 ? `${p.tamaño_m2} m²` : '—'}</td>
+                        <td className="px-5 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[p.estado] ?? ''}`}>
+                            {STATUS_OPTS.find((s) => s.value === p.estado)?.label ?? p.estado}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#F0C040] hover:bg-[#D4AF37]/10 transition-colors" title="Editar">
+                              <Pencil size={15} />
+                            </button>
+                            <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar">
+                              <Trash2 size={15} />
                             </button>
                           </div>
-                        ))}
-                        {/* New file previews */}
-                        {newImagePreviews.map((preview, idx) => {
-                          const overallIdx = existingImageUrls.length + idx
-                          return (
-                            <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border border-[#D4AF37]/50 group/thumb">
-                              <img
-                                src={/^(blob:|https?:)/.test(preview) ? preview : ''}
-                                alt={`Nueva imagen ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              {overallIdx === 0 && (
-                                <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-[#D4AF37]/90 text-white py-0.5">
-                                  Portada
-                                </span>
-                              )}
-                              <span className="absolute top-1 left-1 bg-[#D4AF37]/80 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px]">
-                                ↑
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeNewImage(idx)}
-                                className="absolute top-1 right-1 bg-black/60 hover:bg-red-500/90 text-white rounded-full p-0.5 transition-colors opacity-0 group-hover/thumb:opacity-100"
-                                aria-label="Eliminar imagen"
-                              >
-                                <X size={11} />
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {/* File picker */}
-                    {totalImages < 10 && (
-                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#D4AF37]/30 hover:border-[#D4AF37]/60 rounded-xl p-4 cursor-pointer transition-colors group/drop">
-                        <ImageIcon size={20} className="text-[#D4AF37]/60 group-hover/drop:text-[#D4AF37] transition-colors" />
-                        <span className="text-slate-400 text-xs text-center">
-                          {totalImages === 0
-                            ? 'Selecciona hasta 10 fotos'
-                            : `Agregar más fotos (${10 - totalImages} disponibles)`}
-                        </span>
-                        <span className="text-[#F0C040] text-xs font-medium">
-                          La primera foto será la portada de la card
-                        </span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </label>
-                    )}
-
-                    {totalImages >= 10 && (
-                      <p className="text-amber-400 text-xs text-center py-2">
-                        Límite de 10 imágenes alcanzado. Elimina alguna para agregar más.
-                      </p>
-                    )}
-                  </div>
-                </Field>
-
-                <Field label="Asignar a usuario *" icon={<Building2 size={14} />}>
-                  <select
-                    required
-                    value={form.owner_id}
-                    onChange={(e) => setForm({ ...form, owner_id: e.target.value })}
-                    className="input-dark"
-                  >
-                    <option value="">Seleccionar usuario…</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre} ({u.email})
-                      </option>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                </Field>
-
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="mt-2 bg-[#D4AF37] hover:bg-[#F0C040] disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-colors"
-                >
-                  {uploading ? 'Subiendo imágenes…' : editId ? 'Guardar cambios' : 'Crear propiedad'}
-                </button>
-              </form>
-            </div>
-          </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Table */}
-        {loading ? (
-          <p className="text-center text-slate-400 py-20 animate-pulse">Cargando…</p>
-        ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
-            <table className="w-full text-sm">
-              <thead className="text-slate-400 uppercase text-xs tracking-wider" style={{ background: '#050505' }}>
-                <tr>
-                  <th className="px-5 py-4 text-left">Título</th>
-                  <th className="px-5 py-4 text-left hidden sm:table-cell">Tipo</th>
-                  <th className="px-5 py-4 text-left hidden md:table-cell">Precio</th>
-                  <th className="px-5 py-4 text-left hidden lg:table-cell">Tamaño</th>
-                  <th className="px-5 py-4 text-left">Estado</th>
-                  <th className="px-5 py-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#D4AF37]/10">
-                {properties.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-slate-500">
-                      Sin propiedades aún. ¡Crea la primera!
-                    </td>
-                  </tr>
-                )}
-                {properties.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#D4AF37]/5 transition-colors" style={{ background: '#0a0a0a' }}>
-                    <td className="px-5 py-4 text-white font-medium">{p.titulo}</td>
-                    <td className="px-5 py-4 text-slate-300 hidden sm:table-cell capitalize">
-                      {p.tipo_transaccion}
-                    </td>
-                    <td className="px-5 py-4 text-slate-300 hidden md:table-cell">
-                      €{Number(p.precio).toLocaleString('es-ES')}
-                    </td>
-                    <td className="px-5 py-4 text-slate-400 hidden lg:table-cell">
-                      {p.tamaño_m2 ? `${p.tamaño_m2} m²` : '—'}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[p.estado]}`}>
-                        {STATUS_OPTS.find((s) => s.value === p.estado)?.label ?? p.estado}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(p)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#F0C040] hover:bg-[#D4AF37]/10 transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(p.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* ── LEADS TAB ────────────────────────────────────────────────────────── */}
+        {activeTab === 'leads' && (
+          <>
+            <div className="flex items-center gap-2 mb-6">
+              <Users size={18} className="text-[#D4AF37]" />
+              <p className="text-slate-400 text-sm">{leads.length} contacto{leads.length !== 1 ? 's' : ''} recopilado{leads.length !== 1 ? 's' : ''}</p>
+            </div>
+            {loading ? (
+              <p className="text-center text-slate-400 py-20 animate-pulse">Cargando…</p>
+            ) : (
+              <div className="rounded-2xl overflow-x-auto" style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead className="text-slate-400 uppercase text-xs tracking-wider" style={{ background: '#050505' }}>
+                    <tr>
+                      <th className="px-5 py-4 text-left">Nombre</th>
+                      <th className="px-5 py-4 text-left">Email</th>
+                      <th className="px-5 py-4 text-left">Teléfono</th>
+                      <th className="px-5 py-4 text-left">Dirección</th>
+                      <th className="px-5 py-4 text-left">Cómo nos conoció</th>
+                      <th className="px-5 py-4 text-left">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#D4AF37]/10">
+                    {leads.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-slate-500">Sin leads aún.</td>
+                      </tr>
+                    )}
+                    {leads.map((l) => (
+                      <tr key={l.id} className="hover:bg-[#D4AF37]/5 transition-colors" style={{ background: '#0a0a0a' }}>
+                        <td className="px-5 py-4 text-white font-medium">{l.user?.nombre ?? '—'}</td>
+                        <td className="px-5 py-4 text-slate-300">{l.user?.email ?? '—'}</td>
+                        <td className="px-5 py-4 text-slate-300">
+                          <a href={`tel:${l.telefono}`} className="flex items-center gap-1 hover:text-[#F0C040] transition-colors">
+                            <Phone size={12} />{l.telefono}
+                          </a>
+                        </td>
+                        <td className="px-5 py-4 text-slate-400">{l.direccion}</td>
+                        <td className="px-5 py-4 text-slate-400">{COMO_LABELS[l.como_nos_conocio] ?? l.como_nos_conocio}</td>
+                        <td className="px-5 py-4 text-slate-500 text-xs">{new Date(l.created_at).toLocaleDateString('es-ES')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── TASACIÓN CONFIG TAB ───────────────────────────────────────────────── */}
+        {activeTab === 'tasacion' && (
+          <>
+            <p className="text-slate-400 text-sm mb-6">
+              Configura los modificadores de precio que aparecen en la herramienta de tasación pública.
+            </p>
+
+            {/* Modifier form modal */}
+            {showModifierForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                <div className="rounded-2xl w-full max-w-sm p-6 relative" style={{ background: '#0a0a0a', border: '1px solid rgba(212,175,55,0.25)' }}>
+                  <button className="absolute top-4 right-4 text-slate-400 hover:text-white" onClick={() => { setShowModifierForm(false); setModifierEditId(null); setModifierForm(EMPTY_MODIFIER) }}>
+                    <X size={22} />
+                  </button>
+                  <h2 className="text-lg font-bold text-white mb-5">{modifierEditId ? 'Editar modificador' : 'Nuevo modificador'}</h2>
+                  <form onSubmit={handleModifierSubmit} className="flex flex-col gap-4">
+                    <Field label="Nombre *" icon={<Tag size={14} />}>
+                      <input required type="text" value={modifierForm.nombre} onChange={(e) => setModifierForm({ ...modifierForm, nombre: e.target.value })} className="input-dark" placeholder="Ascensor, Piscina, Garaje…" />
+                    </Field>
+                    <Field label="Tipo de operación *" icon={<Calculator size={14} />}>
+                      <select value={modifierForm.tipo_operacion} onChange={(e) => setModifierForm({ ...modifierForm, tipo_operacion: e.target.value })} className="input-dark">
+                        {TIPO_OPERACION_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label={modifierForm.tipo_operacion === 'porcentaje' ? 'Porcentaje (%) *' : 'Valor adicional (€) *'} icon={<Tag size={14} />}>
+                      <input required type="number" min="0" step={modifierForm.tipo_operacion === 'porcentaje' ? '0.1' : '500'} value={modifierForm.valor_adicional} onChange={(e) => setModifierForm({ ...modifierForm, valor_adicional: e.target.value })} className="input-dark" placeholder={modifierForm.tipo_operacion === 'porcentaje' ? '5' : '15000'} />
+                    </Field>
+                    <button type="submit" className="mt-1 bg-[#D4AF37] hover:bg-[#F0C040] text-black font-semibold py-3 rounded-xl transition-colors">
+                      {modifierEditId ? 'Guardar cambios' : 'Crear modificador'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {loading ? (
+              <p className="text-center text-slate-400 py-20 animate-pulse">Cargando…</p>
+            ) : (
+              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
+                <table className="w-full text-sm">
+                  <thead className="text-slate-400 uppercase text-xs tracking-wider" style={{ background: '#050505' }}>
+                    <tr>
+                      <th className="px-5 py-4 text-left">Nombre</th>
+                      <th className="px-5 py-4 text-left">Tipo</th>
+                      <th className="px-5 py-4 text-left">Valor</th>
+                      <th className="px-5 py-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#D4AF37]/10">
+                    {modifiers.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-center py-12 text-slate-500">Sin modificadores. ¡Crea el primero!</td>
+                      </tr>
+                    )}
+                    {modifiers.map((m) => (
+                      <tr key={m.id} className="hover:bg-[#D4AF37]/5 transition-colors" style={{ background: '#0a0a0a' }}>
+                        <td className="px-5 py-4 text-white font-medium">{m.nombre}</td>
+                        <td className="px-5 py-4 text-slate-400">{m.tipo_operacion === 'porcentaje' ? 'Porcentaje' : 'Suma fija'}</td>
+                        <td className="px-5 py-4 text-[#F0C040] font-semibold">
+                          {m.tipo_operacion === 'porcentaje' ? `+${m.valor_adicional}%` : `+€${Number(m.valor_adicional).toLocaleString('es-ES')}`}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleModifierEdit(m)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#F0C040] hover:bg-[#D4AF37]/10 transition-colors" title="Editar">
+                              <Pencil size={15} />
+                            </button>
+                            <button onClick={() => handleModifierDelete(m.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Eliminar">
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -618,4 +826,3 @@ function Field({ label, icon, children }) {
     </label>
   )
 }
-

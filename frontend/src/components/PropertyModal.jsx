@@ -13,14 +13,17 @@ L.Icon.Default.mergeOptions({
 
 const STATUS_META = {
   disponible: { label: 'Disponible', color: 'bg-emerald-500' },
-  arrendado:  { label: 'Arrendado',  color: 'bg-amber-500'   },
-  vendido:    { label: 'Vendido',    color: 'bg-red-500'     },
   reservado:  { label: 'Reservado',  color: 'bg-purple-500'  },
+  vendido:    { label: 'Vendido',    color: 'bg-red-500'     },
 }
 
-const TIPO_META = {
-  venta:    { label: 'Venta',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
-  arriendo: { label: 'Arriendo', gradient: 'from-[#7c3aed] to-[#5b21b6]' },
+const TIPO_VIVIENDA_META = {
+  piso:    { label: 'Piso',    gradient: 'from-[#D4AF37] to-[#9B7E28]' },
+  chalet:  { label: 'Chalet',  gradient: 'from-[#7c3aed] to-[#5b21b6]' },
+  villa:   { label: 'Villa',   gradient: 'from-[#0369a1] to-[#075985]' },
+  duplex:  { label: 'Dúplex',  gradient: 'from-[#0f766e] to-[#0d5752]' },
+  local:   { label: 'Local',   gradient: 'from-[#b45309] to-[#92400e]' },
+  otro:    { label: 'Otro',    gradient: 'from-[#374151] to-[#1f2937]' },
 }
 
 const AGENT_PHONE = import.meta.env.VITE_AGENT_PHONE || '34658062023'
@@ -65,10 +68,10 @@ export default function PropertyModal({ property, onClose }) {
   }
 
   const status = STATUS_META[property.estado] ?? STATUS_META.disponible
-  const tipo   = TIPO_META[property.tipo_transaccion] ?? TIPO_META.venta
+  const tipo   = TIPO_VIVIENDA_META[property.tipo_vivienda] ?? TIPO_VIVIENDA_META.piso
 
   const whatsappMsg = encodeURIComponent(
-    `Hola, me interesa la propiedad "${property.titulo}"${property.direccion ? ` en ${property.direccion}` : ''}. ¿Me puedes dar más información?`
+    `Hola, estoy interesado/a en la propiedad "${property.titulo}"${property.direccion ? ` (${property.direccion})` : ''}. Precio: €${Number(property.precio).toLocaleString('es-ES')}. ¿Me puede dar más información?`
   )
   const phone = property.owner?.telefono?.replace(/\D/g, '') || AGENT_PHONE
   const whatsappUrl = `https://wa.me/${phone}?text=${whatsappMsg}`
@@ -170,7 +173,7 @@ export default function PropertyModal({ property, onClose }) {
 
         {/* ── Property details ──────────────────────────────────────────────── */}
         <div className="p-5 sm:p-6 flex flex-col gap-4">
-          {/* Status + tipo badges */}
+          {/* Status + tipo de vivienda badges */}
           <div className="flex flex-wrap gap-2">
             <span className={`text-xs font-bold px-3 py-1 rounded-full text-white ${status.color}`}>
               {status.label}
